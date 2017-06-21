@@ -1,61 +1,61 @@
+    #Add multinomil normal distribution to the random effects
+    
     #  Basic multinomial describing how white the population is by time
 	#random effects on camera
 	#no fixed effects
-    
+
     model{
-      
+
+      #Priors and constraints
       for(i in 1:(nbins - 1)){
         alpha[i] ~ dnorm(0, 0.001)
       }
-      
+
       for(i in 1:(nbins - 1)){
         beta[i] ~ dnorm(0, 0.001)
       }
-      
-      for(i in 1:2){
-        tau_cam[i] ~ dunif(0, 100)
-        sig_cam[i] <- 1/sqrt(tau_cam[i])
-        for(c in 1:ncam){
-          cam_eff[i, c] ~ dnorm(0, tau_cam[i])
+
+      #Probabilities estimates
+      for(d in 1:ndays){
+        for (c in 1:ncam){
+          log(p_exp[1,d,1:ncam])~ dmnorm(xx[],omega[,])
+            xx[c] ~ alpha[1] +
+            beta[1] * d
+
+          log(p_exp[2,d,1:ncam])~ dmnorm(xx[],omega[,])
+            xx[c] ~ alpha[1] +
+            beta[1] * d
+
+          log(p_exp[3,d,1:ncam]) <- 0
+
+          p_sum[d,1:ncam] <- sum(p_exp[,d,1:ncam])
+
+          p_rand[1,d,1:ncam] <- p_exp[1,d,1:ncam]/p_sum[d,1:ncam]
+          p_rand[2,d,1:ncam] <- p_exp[2,d,1:ncam]/p_sum[d,1:ncam]
+          p_rand[3,d,1:ncam] <- p_exp[3,d,1:ncam]/p_sum[d,1:ncam]
         }
       }
-      
-      for(c in 1:ncam){
-        for(d in 1:ndays){
-          log(p_exp[1,c,d]) <- alpha[1] + 
-            beta[1] * d +
-            cam_eff[1,c]
 
-          log(p_exp[2,c,d]) <- alpha[2] + 
-            beta[2] * d +
-            cam_eff[2,c]
+      omega[1:ncam, 1:ncam] ~ dwish(R[,], df)
+      sigma[1:ncam, 1:ncam] <- inverse(omega[,])
 
-          log(p_exp[3,c,d]) <- 0
-
-          p_sum[c,d] <- sum(p_exp[,c,d])
-
-          p_rand[1,c,d] <- p_exp[1,c,d]/p_sum[c,d]
-          p_rand[2,c,d] <- p_exp[2,c,d]/p_sum[c,d]
-          p_rand[3,c,d] <- p_exp[3,c,d]/p_sum[c,d]
-        }
-      }
-      
       for(i in 1:nobs){
         y[i] ~ dcat(p_rand[,cam[i],day[i]])
       }
-      
+
+
       #  Derived to strip off random camera effect
       for(d in 1:ndays){
-        log(pp_exp[1,d]) <- alpha[1] + 
+        log(pp_exp[1,d]) <- alpha[1] +
           beta[1] * d
-        log(pp_exp[2,d]) <- alpha[2] + 
-          beta[2] * d 
+        log(pp_exp[2,d]) <- alpha[2] +
+          beta[2] * d
         log(pp_exp[3,d]) <- 0
 
         pp_sum[d] <- sum(pp_exp[,d])
 
         pp[1,d] <- pp_exp[1,d]/pp_sum[d]
         pp[2,d] <- pp_exp[2,d]/pp_sum[d]
-        pp[3,d] <- pp_exp[3,d]/pp_sum[d]       
+        pp[3,d] <- pp_exp[3,d]/pp_sum[d]
       }
     }
