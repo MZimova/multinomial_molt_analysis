@@ -1,0 +1,22 @@
+    #  Basic multinomial describing how white the population is by time
+    
+    model{
+      
+      for(i in 1:nbins){
+        for(d in 1:ndays){
+          alpha[i,d] ~ dnorm(0, 0.001)
+        }
+      }
+      
+      for(i in 1:nbins){
+        for(d in 2:ndays){
+          log(p_exp[i,d]) <- alpha[i, d-1] + noise
+          p[i,d] <- p_exp[i,d]/sum(p_exp[,d])
+        }
+      }
+      
+      for(i in 1:nobs){
+        y[i] ~ dcat(p_exp[,day[i]])
+      }
+    
+    }

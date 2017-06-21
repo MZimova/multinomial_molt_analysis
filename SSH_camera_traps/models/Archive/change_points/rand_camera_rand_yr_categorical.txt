@@ -1,0 +1,52 @@
+model{
+  #  Regression priors
+  #  Percent white at beginning of study
+  alpha[1] ~ dunif(0, 100)
+  alpha[2] ~ dunif(0, 100)
+  alpha[3] ~ dunif(0, 100)
+
+  #  "Process error"
+  for(i in 1:3){
+    tau[i] ~ dunif(0, 1000) 
+    sigma[i] <- 1 / sqrt(tau[i]) 
+  }
+  
+  start ~ dunif(first_day, last_day)
+  end ~ dunif(first_day, last_day)
+  
+  tau_start_yr ~ dunif(0, 300)
+  sigma_start_yr <- 1 / sqrt(tau_start_yr)
+  tau_end_yr ~ dunif(0, 300)
+  sigma_end_yr <- 1 / sqrt(tau_end_yr)  
+  
+  #  Start date of molt at population scale per year
+  for(y in 1:nyr){
+    start_pop[y] ~ dnorm(start, tau_start_yr)T(first_day, last_day)   
+    end_pop[y] ~ dnorm(end, tau_end_yr)T(first_day, last_day)
+  }
+
+  #  Error to describe variation among cameras in start and end dates AND 
+  #   account for repeat observations
+  tau_start ~ dunif(0, 300)
+  sigma_start <- 1 / sqrt(tau_start)
+  tau_end ~ dunif(0, 300)
+  sigma_end <- 1 / sqrt(tau_end)
+
+  #  Random effect to allow each camera to observe different molt dates
+  for(y in 1:nyr){
+    for(i in 1:ncam){
+      start_cam[y,i] ~ dnorm(start_pop[y], tau_start)T(first_day, last_day)
+      end_cam[y,i] ~ dnorm(end_pop[y], tau_end)T(first_day, last_day)
+    }
+  }
+
+  #  Likelihood
+  for(i in 1:nobs){
+    J[i] <- 1 + (day[i] > start_cam[yr[i], cam[i]]) + 
+      (day[i] > end_cam[yr[i], cam[i]])
+
+    mu[i] <- alpha[J[i]]
+
+    white[i] ~ dnorm(mu[i], tau[J[i]])T(0, 100)
+  }
+}

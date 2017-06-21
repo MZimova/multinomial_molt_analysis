@@ -1,0 +1,28 @@
+model{
+  #  Regression priors
+  alpha ~ dnorm(0.0, 1.0E-6)
+  beta[1] ~  dnorm(0.0, 1000) 
+  beta[2] ~ dnorm(0.0, 1.0E-6) 
+  beta1[1] ~  dnorm(0.0, 1000)
+  beta1[2] ~ dnorm(0.0, 1.0E-6)
+  tau ~ dgamma(0.001, 0.001) 
+  sigma <- 1 / sqrt(tau) 
+  
+  for(i in 1:ncam){ 
+    x.change[i] ~ dnorm(start, tauChange)
+  }
+  
+  start ~ dunif(0, 365) 
+  end ~ dunif(0, 365) 
+  tauChange ~ dunif(0, 100)
+  sigmaChange <- 1 / sqrt(tauChange)
+  
+  for(i in 1:nobs){ 
+    J[i] <- 1 + step(day[i] - x.change[cam[i]])
+    
+    mu[i] <- alpha + 
+      beta[J[i]] * (day[i] - x.change[cam[i]])
+      
+    white[i] ~ dnorm(mu[i], tau)
+  }
+}

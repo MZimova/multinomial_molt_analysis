@@ -1,0 +1,22 @@
+model{
+
+  #  Regression priors
+  alpha <- 100 
+  beta[1] ~  dnorm(0.0, 1000) 
+  beta[2] ~ dnorm(0.0, 1.0E-6) 
+  beta1[1] ~  dnorm(0.0,1000)
+  beta1[2] ~ dnorm(0.0,1.0E-6)
+  tau ~ dgamma(0.001, 0.001) 
+  sigma <- 1 / sqrt(tau) 
+  
+  start ~ dunif(45,110) 
+  end ~ dunif(120,170) 
+  #mid <- (-50/beta[2] + start)
+  
+  for(i in 1:nobs){ 
+    J[i] <- 1 + step(day[i] - start) 
+    K[i] <- 1 + step(day[i] - end)   
+    mu[i] <- alpha + beta[J[i]] * (day[i] - start) + beta1[K[i]] * (day[i] - end)		
+    white[i] ~ dnorm(mu[i], tau)
+  }
+}

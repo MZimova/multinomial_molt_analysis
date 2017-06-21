@@ -1,0 +1,70 @@
+    #  Basic multinomial describing how white the population is by time
+    
+    model{
+      for(i in 1:2){
+        elev_eff[i] ~ dnorm(0, 0.001)
+        esnow_eff[i] ~ dnorm(0, 0.001)
+      }
+      
+      for(i in 1:(nbins - 1)){
+        alpha[i] ~ dnorm(0, 0.001)
+      }
+      
+      for(i in 1:(nbins - 1)){
+        beta[i] ~ dnorm(0, 0.001)
+      }
+      
+      tau_cam ~ dunif(0, 100)
+      sig_cam <- 1/sqrt(tau_cam)
+      
+      for(i in 1:2){
+        tau_cam[i] ~ dunif(0, 100)
+        sig_cam[i] <- 1/sqrt(tau_cam[i])
+        for(c in 1:ncam){
+          cam_eff[i, c] ~ dnorm(0, tau_cam[i])
+        }
+      }
+      
+      for(c in 1:ncam){
+        for(d in first[i]:last[i]){
+          log(p_exp[1,c,d]) <- alpha[1] + 
+            beta[1] * d +
+            elev_eff[1] * elev[c] +
+            #esnow_eff[1] + snow[c,d] +
+            cam_eff[1,c]
+
+          log(p_exp[2,c,d]) <- alpha[2] + 
+            beta[2] * d +
+            elev_eff[2] * elev[c] +
+            #esnow_eff[2] * snow[c,d] +
+            cam_eff[2,c]
+
+          log(p_exp[3,c,d]) <- 0
+
+          p_sum[c,d] <- sum(p_exp[,c,d])
+
+          p[1,c,d] <- p_exp[1,c,d]/p_sum[c,d]
+          p[2,c,d] <- p_exp[2,c,d]/p_sum[c,d]
+          p[3,c,d] <- p_exp[3,c,d]/p_sum[c,d]      
+        }
+      }
+      
+      for(i in 1:nobs){
+        y[i] ~ dcat(p[,cam[i],day[i]])
+      }
+      
+      #  Derived to strip off random camera effect
+      for(d in 1:ndays){
+        log(pp_exp[1,d]) <- alpha[1] + 
+          beta[1] * d
+        log(pp_exp[2,d]) <- alpha[2] + 
+          beta[2] * d 
+        log(pp_exp[3,d]) <- 0
+
+        pp_sum[d] <- sum(pp_exp[,d])
+
+        pp[1,d] <- pp_exp[1,d]/pp_sum[d]
+        pp[2,d] <- pp_exp[2,d]/pp_sum[d]
+        pp[3,d] <- pp_exp[3,d]/pp_sum[d]       
+      }
+    }
