@@ -1,0 +1,19 @@
+		#  JAGS coat color time-series multinomial
+		#  Josh Nowak/Marketa Zimova
+		#  02/2017
+################################################################################
+		model{
+			#  Priors
+      b[1:5] ~ ddirch(alpha)
+      
+			for(i in 1:ncat){
+				#b[i] ~ ddirch(c(1/5,1/5,1/5,1/5,1/5))
+				log(psi[i]) <- b[i]
+				rats[i] <- psi[i]/sum(psi[])
+			}
+			
+			#  Likelihood
+			for(i in 1:nobs){
+				y[i,] ~ dmulti(rats[], n[i])
+			}
+		}
