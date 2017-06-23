@@ -57,7 +57,8 @@
     #  Inits
     inits <- function(){
       list(
-        alpha = rnorm(3)
+        alpha = rnorm(3)#,
+        #omega= matrix(c(K*K?), ncol=ncam)) 
       )
     }
     
@@ -70,9 +71,10 @@
       nbins = 3,
       ndays = last_day,
       ncam = length(unique(hares$CameraNum)),
-      elev = as.numeric(hares$Elevation)
+      elev = as.numeric(hares$Elevation)#,
+      #R = matrix(K*K, ncol = ncam), df= K+1)) #parameters of the inverse Wishart
     )
-    
+
     # Parameters to monitor
     parms <- c(
       "pp", "beta", "alpha", "sig_cam", "tau_cam", "elev_eff" #,"p_rand"
