@@ -14,34 +14,48 @@
       for(i in 1:(nbins - 1)){
         beta[i] ~ dnorm(0, 0.001)
       }
-      
-      #  Random effects as mvnormal
-      # V: diagonal matrix
-      V[1,1] <- 1
-      V[2,2] <- 1
-      V[1,2] <- 0
-      V[2,1] <- 0
-      
-      # prior on precision matrix with 3 degree of freedom
-      omega[1:2, 1:2] ~ dwish(V[ , ], 3)
-		
-      # Covariance matrix
-      sigma2[1:2, 1:2] <- inverse(omega[,])
 
-      # Conditional standard deviation
-      sigma[1] <- sqrt(sigma2[1, 1])	# SD of category 1
-      sigma[2] <- sqrt(sigma2[2, 2])	# SD of category 2
-      
-      # Conditional correlation
-      rho <- sigma2[1, 2]/(sigma[1] * sigma[2])
+      # Priors for means of multivariate normal distribution
+      Mu.raw[1] ~ dunif(0,100)
+      Mu.raw[2] ~ dunif(0,100)
 
-      #  Prior on camera mean
-      cat_mu[1] <- 0
-      cat_mu[2] <- 0
+      #  Scale is three because we are drawing 2 values and so 2 + 1
+      scale <- 3
+      
+      #  The identity matrix is suggested for the expectation of the precision 
+      #    matrix
+      R[1,1] <- 1
+      R[2,2] <- 1
+      R[1,2] <- 0
+      R[2,1] <- 0
+      
+      # Scaled inverse Wishart prior
+      Sigma2.inv.raw ~ dwish(R, scale) # R = 2x2 identity matrix, scale = 3
+      
+      # Scaling parameter for inverse wishart
+      xi1 ~ dunif(0, 100) 
+      xi2 ~ dunif(0, 100)
+
+      # Rescale parameters to the scale of the data
+      Sigma2.raw <- inverse(Sigma2.inv.raw)
+      
+      #  Standard deviation of precision matrix
+      sigma[1] <- sqrt(Sigma2.raw[1,1]) * xi1 # rescaled standard deviation of vector[,1]
+      sigma[2] <- sqrt(Sigma2.raw[2,2]) * xi2 # rescaled standard deviation of vector[,2]
+      
+      #  Correlation of category 1 to category 2
+      rho <- Sigma2.raw[1,2]/sqrt(Sigma2.raw[1,1]*Sigma2.raw[2,2])
+      
+      #  Rescaled mean value for category 1 and 2
+      cat_mu[1] <- mu.raw[1] * xi1
+      cat_mu[2] <- mu.raw[2] * xi2
       
       #  Draw effect of camera for each category admitting they are correlated
       for(c in 1:ncam){
-        cam_eff[1:2, c] ~ dmnorm(cat_mu[], omega[1:2,1:2])
+        cam_eff[1:2, c] ~ dmnorm(cat_mu[], Sigma2.inv.raw[1:2,1:2])
+        vector[i,1] <- vector.raw[i,1] * xi1
+        vector[i,2] <- vector.raw[i,2] * xi2
+        vector.raw[i,1:2] ~ dmnorm(Mu.raw,Sigma2.inv.raw)
       }
 
       for(c in 1:ncam){
