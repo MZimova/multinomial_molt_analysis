@@ -32,8 +32,8 @@
     #  Morph raw data
     hares <- morph_data(rawd) %>%
       filter(
-        Season == "Spring" #,
-        #Year == 2014
+        Season == "Spring",
+        Year == 2014
       )
 
 
@@ -85,14 +85,14 @@
       parameters.to.save = parms,
       model.file = "models/multinom_randCam_covs.txt", 
       n.chains = 3,
-      n.iter = 1000,
-      n.burnin = 500,
+      n.iter = 10000,
+      n.burnin = 5000,
       n.thin = 3 
     )
 ################################################################################
-    options(max.print=100) #extend maximum for print
+    #options(max.print=100) #extend maximum for print
     print(out)
-    #out$BUGS$mean$p_rand
+    out$BUGS$mean$tau_cam
     
     #  Find start dates
     starts <- apply(out$BUGS$sims.list$pp[,3,], 1, function(x){ 
@@ -132,7 +132,6 @@
     hist(ends, add = T, freq = F, col = "black", border = "black")  
 
     hist(out$BUGS$sims.list$elev_eff[1,], breaks = 50)
-
 
     #  Plot with random effects
     plot(0, 0, 
@@ -194,6 +193,7 @@
     
     #Diagnostics plots
     out.mcmc <- as.mcmc(out) # Convert model output into an MCMC object
+    str(out.mcmc)
     #library(coda)
     #plot(out.mcmc)
     #out.mtx <- as.matrix(out.mcmc)
@@ -205,9 +205,12 @@
     #a <-print(out$BUGSoutput$sims.array)
     #str(out)
 
+    hist(out$BUGS$sims.list$eta[,1])
+    plot(density(out$BUGS$mean$pp[1,]))
+
     library(lattice)
-    xyplot(out.mcmc, layout=c(3,3), aspect="fill") # chains history
-    densityplot(out.mcmc, layout=c(3,3), aspect="fill") # posteriors
+    xyplot(out.mcmc, layout=c(10,10), aspect="fill") # chains history
+    densityplot(out.mcmc, layout=c(10,10), aspect="fill") # posteriors
     #autocorr.plot(out.mcmc) # autocorrelation plot
     #gelman.plot(out.mcmc) 
     

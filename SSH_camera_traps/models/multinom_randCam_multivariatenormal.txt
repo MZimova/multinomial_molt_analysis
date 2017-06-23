@@ -1,5 +1,5 @@
     #Add multinomil normal distribution to the random effects
-    
+
     #  Basic multinomial describing how white the population is by time
 	#random effects on camera
 	#no fixed effects
@@ -15,7 +15,7 @@
         beta[i] ~ dnorm(0, 0.001)
       }
 
-      #Probabilities estimates
+      #Likelihood
       for(d in 1:ndays){
         for (c in 1:ncam){
           log(p_exp[1,d,1:ncam])~ dmnorm(xx[],omega[,])

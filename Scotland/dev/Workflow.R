@@ -1,13 +1,4 @@
-    #  Hare coat color change data exploration
-    #  Josh Nowak/Marketa Zimova
-    #  02/2017
-################################################################################
-    #  Packages
-    require(readr)
-    require(tidyr)
-    require(dplyr)
-################################################################################
-    #  Set working directory
+     #  Set working directory
     setwd("/Users/marketzimova/Documents/WORK/DISSERTATION/2 Scotland/GitHub/ScottishHares") #MZ
     #setwd("/Users/...") #Josh
 
@@ -21,4 +12,8 @@
     morph_data(hare_dat)
 ################################################################################    
     
+    # Consider using expand.grid and a join to accomplish this in long format.
+    # Nested indexing may also be easier than a wide format.
     
+    # The array is ragged at the moment and we want to predict the proportion of white:brown at each site whether it was visited or not. 
+    # Like an encounter history for survival we want to make the data square.
