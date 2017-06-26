@@ -36,3 +36,18 @@ ggplot(data=means, aes(Week, mm)) +
   geom_jitter(data=fox, aes(Week, Mismatch, colour=Morph:area), alpha=.3,size=.5) +
   labs(title="Average weekly mismatch")  
   
+################## boxplots (but something's wrong)
+H<- subset(fox,  area %in% c('helags'))
+V<- subset(fox,  area %in% c('vindelfjallen'))
+
+Helags <- ggplot(data=H, aes(Week, Mismatch)) +
+  geom_boxplot(data=H, aes(Julian, Mismatch, group=Week,color=Morph)) +
+         labs(title="Helags") 
+
+Vindel <- ggplot(data=V, aes(Julian, Mismatch)) +
+  geom_boxplot(data=V, aes(Julian, Mismatch, group=Week,color=Morph)) +
+  labs(title="Vindel") 
+
+grid.arrange(Helags, Vindel, nrow=2, ncol=1)
+
+  
