@@ -11,12 +11,11 @@
     library(dplyr)
 ################################################################################
     #  Set working directory
-    setwd("C:/Users/josh.nowak/Documents/GitHub/multinomial_molt_analysis/SSH_camera_traps")
-    #setwd("/Volumes/HP V100W/SSH-camera-trap-analysis-MZ_branch2")
-    #setwd("/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis/SSH_camera_traps")
+    #setwd("C:/Users/josh.nowak/Documents/GitHub/multinomial_molt_analysis/SSH_camera_traps")
+    setwd("/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis/SSH_camera_traps")
     #  Path to data
-    jjn <- "C:/Temp/NH_hare_data2.csv"
-    #jjn <- "/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/data/SSH/NH_hare_data2.csv"
+    #jjn <- "C:/Temp/NH_hare_data2.csv"
+    jjn <- "/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/data/SSH/NH_hare_data2.csv"
     
     #  Source functions
     source("code/utility_functions.R")
@@ -55,8 +54,7 @@
     #  Inits
     inits <- function(){
       list(
-        alpha = rnorm(3)#,
-        #omega= matrix(c(K*K?), ncol=ncam)) 
+        alpha = rnorm(3)
       )
     }
     
@@ -83,14 +81,14 @@
       data = dat, 
       inits = NULL,
       parameters.to.save = parms,
-      model.file = "models/multinom_randCam_multivariatenormal.txt", 
+      model.file = "models/multinom_mvn_uninformative.txt", 
       n.chains = 3,
-      n.iter = 5000,
-      n.burnin = 2000,
+      n.iter = 50000,
+      n.burnin = 20000,
       n.thin = 3
     )
 ################################################################################
-    #options(max.print=100) #extend maximum for print
+    options(max.print=100000) #extend maximum for print
     print(out)
     out$BUGS$mean$tau_cam
     
