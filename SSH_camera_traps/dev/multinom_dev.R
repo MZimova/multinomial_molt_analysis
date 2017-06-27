@@ -72,7 +72,7 @@
     # Parameters to monitor
     parms <- c(
       "pp", "beta", "alpha", "elev_eff", "sigma", "rho", "p_rand",
-      "cat_mu"
+      "cat_mu", "elev_eff"
     )
 
     #  Call jags
@@ -80,10 +80,10 @@
       data = dat, 
       inits = NULL,
       parameters.to.save = parms,
-      model.file = "models/multinom_mvn.txt", 
+      model.file = "models/multinom_mvn_covs.txt", 
       n.chains = 3,
-      n.iter = 2000,
-      n.burnin = 1000,
+      n.iter = 1000,
+      n.burnin = 500,
       n.thin = 3
     )
 ################################################################################
@@ -107,6 +107,14 @@
     hist(ends, xlab = "Day")
     quantile(ends, c(0.025, 0.5, 0.975))
   
+    #  Find mid-points
+    mids <- apply(out$BUGS$sims.list$pp[,2,], 1, function(x){ 
+      min(which(x == max(x)))
+      })
+    
+    hist(mids, xlab = "Day")
+    quantile(ends, c(0.025, 0.5, 0.975))
+    
     #Plot start and end dates and mean pps
     plot(0, 0, 
       type = "n", 
@@ -124,10 +132,11 @@
       lines(day_seq, out$BUGS$mean$pp[i,], col = i, type = "l")
     }
     points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray90")
-    abline(v=c(quantile(starts, 0.5), quantile(ends, 0.5)))
+    abline(v=c(quantile(starts, 0.5), quantile(ends, 0.5), quantile(mids, 0.5)))
     hist(starts, add = T, freq = F, col = "green", border = "green")
     hist(ends, add = T, freq = F, col = "black", border = "black")  
-
+    hist(mids, add = T, freq = F, col = "red", border = "red")  
+    
     hist(out$BUGS$sims.list$elev_eff[1,], breaks = 50)
 
     #  Plot with random effects
