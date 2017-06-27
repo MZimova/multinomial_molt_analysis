@@ -36,3 +36,4 @@ ggplot(data=means, aes(Week, mm)) +
   geom_jitter(data=fox, aes(Week, Mismatch, colour=Morph:area), alpha=.3,size=.5) +
   labs(title="Average weekly mismatch")  
   
+

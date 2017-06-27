@@ -1,8 +1,6 @@
-    #Add multinomil normal distribution to the random effects
-
-    #  Basic multinomial describing how white the population is by time
-	#random effects on camera
-	#no fixed effects
+  #  Basic multinomial describing how white the population is by time
+	# random effects on camera w/ multinomial normal distribution
+	# no fixed effects
 
     model{
 
@@ -14,31 +12,31 @@
       for(i in 1:(nbins - 1)){
         beta[i] ~ dnorm(0, 0.001)
       }
-      
+
       #  Random effects as mvnormal
       # V: diagonal matrix
       V[1,1] <- 1
       V[2,2] <- 1
       V[1,2] <- 0
       V[2,1] <- 0
-      
+
       # prior on precision matrix with 3 degree of freedom
       omega[1:2, 1:2] ~ dwish(V[ , ], 3)
-		
+
       # Covariance matrix
       sigma2[1:2, 1:2] <- inverse(omega[,])
 
       # Conditional standard deviation
       sigma[1] <- sqrt(sigma2[1, 1])	# SD of category 1
       sigma[2] <- sqrt(sigma2[2, 2])	# SD of category 2
-      
+
       # Conditional correlation
       rho <- sigma2[1, 2]/(sigma[1] * sigma[2])
 
       #  Prior on camera mean
       cat_mu[1] <- 0
       cat_mu[2] <- 0
-      
+
       #  Draw effect of camera for each category admitting they are correlated
       for(c in 1:ncam){
         cam_eff[1:2, c] ~ dmnorm(cat_mu[], omega[1:2,1:2])

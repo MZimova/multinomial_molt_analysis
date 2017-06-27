@@ -48,8 +48,7 @@
     last_day <- max(days)
     
     #  Create categorical response
-    response <- cut(hares$White, 3, labels = 1:3)
-
+    response <- cut(hares$White3, 3, labels = 1:3)
     
     #  Inits
     inits <- function(){
@@ -72,7 +71,7 @@
 
     # Parameters to monitor
     parms <- c(
-      "pp", "beta", "alpha", "sig_cam", "tau_cam", "elev_eff", "sigma", "rho",
+      "pp", "beta", "alpha", "elev_eff", "sigma", "rho", "p_rand",
       "cat_mu"
     )
 
@@ -81,16 +80,16 @@
       data = dat, 
       inits = NULL,
       parameters.to.save = parms,
-      model.file = "models/multinom_mvn_uninformative.txt", 
+      model.file = "models/multinom_mvn.txt", 
       n.chains = 3,
-      n.iter = 50000,
-      n.burnin = 20000,
+      n.iter = 2000,
+      n.burnin = 1000,
       n.thin = 3
     )
 ################################################################################
     options(max.print=100000) #extend maximum for print
     print(out)
-    out$BUGS$mean$tau_cam
+    out$BUGS$mean$cat_mu
     
     #  Find start dates
     starts <- apply(out$BUGS$sims.list$pp[,3,], 1, function(x){ 
@@ -108,6 +107,7 @@
     hist(ends, xlab = "Day")
     quantile(ends, c(0.025, 0.5, 0.975))
   
+    #Plot start and end dates and mean pps
     plot(0, 0, 
       type = "n", 
       col = "red",
@@ -123,8 +123,7 @@
     for(i in 1:3){
       lines(day_seq, out$BUGS$mean$pp[i,], col = i, type = "l")
     }
-    points(hares$Julian, jitter(hares$White/100), pch = 19, cex = 1, col = "gray90")
-    abline(v=c(90,159),col = "gray90")
+    points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray90")
     abline(v=c(quantile(starts, 0.5), quantile(ends, 0.5)))
     hist(starts, add = T, freq = F, col = "green", border = "green")
     hist(ends, add = T, freq = F, col = "black", border = "black")  
@@ -164,7 +163,7 @@
           mat$day[i]
         ]
     }
-    
+    mat
     
     #  Add lines to plot for each camera
     for(i in 1:ncategories){
@@ -172,7 +171,7 @@
         lines(day_seq, out$BUGS$mean$p_rand[i,j,], col = i, type = "l")
       }
     }
-    points(hares$Julian, jitter(hares$White/100), pch = 19, cex = 1, col = "gray90")
+    points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray90")
     
 
     # legend(
@@ -182,8 +181,9 @@
     #   col = 1:3
     # )
     
+    #writes csv with results
     out.sum <- out$BUGS$summary 
-    write.table(out.sum, file="out2014.csv",sep=",") #writes csv with results
+    write.table(out.sum, file="out2014.csv",sep=",")
     #xx <- read.csv("out2015.csv"); str(xx)
     
 
