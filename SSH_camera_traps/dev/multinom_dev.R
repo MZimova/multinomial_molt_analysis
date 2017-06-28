@@ -16,6 +16,7 @@
     #  Path to data
     #jjn <- "C:/Temp/NH_hare_data2.csv"
     jjn <- "/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/data/SSH/NH_hare_data2.csv"
+    #/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/data/SSH
     
     #  Source functions
     source("code/utility_functions.R")
@@ -32,7 +33,7 @@
     hares <- morph_data(rawd) %>%
       filter(
         Season == "Spring",
-        Year == 2014
+        Year == 2015
       )
 ################################################################################
     #  Call a single model step by step - mimics jags_call
@@ -71,31 +72,30 @@
 
     # Parameters to monitor
     parms <- c(
-      "pp", "beta", "alpha", "elev_eff", "sigma", "rho", "p_rand",
-      "cat_mu", "elev_eff"
+      "pp", "beta", "alpha", "sigma", "rho", "p_rand"
+      #, "elev_eff", "cat_mu" 
     )
 
     #  Call jags
-    out <- jags(
+    out <- jags.parallel(
       data = dat, 
       inits = NULL,
       parameters.to.save = parms,
-      model.file = "models/multinom_mvn_covs.txt", 
+      model.file = "models/multinom_mvn.txt", 
       n.chains = 3,
-      n.iter = 1000,
-      n.burnin = 500,
+      n.iter = 10000,
+      n.burnin = 5000,
       n.thin = 3
     )
 ################################################################################
-    options(max.print=100000) #extend maximum for print
+    #options(max.print=100000) #extend maximum for print
     print(out)
-    out$BUGS$mean$cat_mu
+    #out$BUGS$mean$cat_mu
     
     #  Find start dates
     starts <- apply(out$BUGS$sims.list$pp[,3,], 1, function(x){ 
       min(which(x < 0.9)) 
     })
-    
     hist(starts, xlab = "Day")
     quantile(starts, c(0.025, 0.5, 0.975))
     
@@ -103,7 +103,6 @@
     ends <- apply(out$BUGS$sims.list$pp[,1,], 1, function(x){ 
       min(which(x > 0.9)) 
     })
-    
     hist(ends, xlab = "Day")
     quantile(ends, c(0.025, 0.5, 0.975))
   
@@ -111,9 +110,8 @@
     mids <- apply(out$BUGS$sims.list$pp[,2,], 1, function(x){ 
       min(which(x == max(x)))
       })
-    
     hist(mids, xlab = "Day")
-    quantile(ends, c(0.025, 0.5, 0.975))
+    quantile(mids, c(0.025, 0.5, 0.975))
     
     #Plot start and end dates and mean pps
     plot(0, 0, 
@@ -127,18 +125,21 @@
     )
     
     day_seq <- 1:dim(out$BUGS$mean$pp)[2]
+    points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray90")
     
     for(i in 1:3){
       lines(day_seq, out$BUGS$mean$pp[i,], col = i, type = "l")
     }
-    points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray90")
     abline(v=c(quantile(starts, 0.5), quantile(ends, 0.5), quantile(mids, 0.5)))
     hist(starts, add = T, freq = F, col = "green", border = "green")
     hist(ends, add = T, freq = F, col = "black", border = "black")  
     hist(mids, add = T, freq = F, col = "red", border = "red")  
     
-    hist(out$BUGS$sims.list$elev_eff[1,], breaks = 50)
-
+    #writes csv with results
+    out.sum <- out$BUGS$summary 
+    write.table(out.sum, file="/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/results/SSH/out2015_mvn_prand.monit_NH2.csv",sep=",")
+    
+     
     #  Plot with random effects
     plot(0, 0, 
       type = "n", 
@@ -175,12 +176,12 @@
     mat
     
     #  Add lines to plot for each camera
+    points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray90")
     for(i in 1:ncategories){
       for(j in 1:ncamera){
         lines(day_seq, out$BUGS$mean$p_rand[i,j,], col = i, type = "l")
       }
     }
-    points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray90")
     
 
     # legend(
@@ -189,20 +190,22 @@
     #   lty = 1,
     #   col = 1:3
     # )
-    
-    #writes csv with results
-    out.sum <- out$BUGS$summary 
-    write.table(out.sum, file="out2014.csv",sep=",")
-    #xx <- read.csv("out2015.csv"); str(xx)
-    
+  
 
 ################################################################################ 
-    
     #Diagnostics plots
+    hist(out$BUGS$sims.list$sigma[,1], breaks = 200)
+    hist(out$BUGS$sims.list$sigma[,2], breaks = 200)
+    hist(out$BUGS$sims.list$rho, breaks = 200)
+    hist(out$BUGS$sims.list$alpha[,1], breaks=200)
+    hist(out$BUGS$sims.list$alpha[,2], breaks=200)
+    hist(out$BUGS$sims.list$beta[,1], breaks=200)
+    hist(out$BUGS$sims.list$beta[,2], breaks=200)
+    
     out.mcmc <- as.mcmc(out) # Convert model output into an MCMC object
     str(out.mcmc)
-    #library(coda)
-    #plot(out.mcmc)
+    library(coda)
+    plot(out.mcmc)
     #out.mtx <- as.matrix(out.mcmc)
     #out.df <- as.data.frame(out.mcmc) # all itterations
     #mymodel.p <- out.df[, grep("p[", colnames(out.df), fixed=T)] #only p's
@@ -212,11 +215,17 @@
     #a <-print(out$BUGSoutput$sims.array)
     #str(out)
 
-    hist(out$BUGS$sims.list$eta[,1])
-    plot(density(out$BUGS$mean$pp[1,]))
+    hist(out$BUGS$sims.list$beta[,1])
+    plot(density(out$sims.matrix[,"pp"]))
 
+    jpeg(file =/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/data/SSH/myplot.jpeg”)
+    or
+    
     library(lattice)
     xyplot(out.mcmc, layout=c(10,10), aspect="fill") # chains history
+    dev.off()
+    
+    
     densityplot(out.mcmc, layout=c(10,10), aspect="fill") # posteriors
     #autocorr.plot(out.mcmc) # autocorrelation plot
     #gelman.plot(out.mcmc) 
