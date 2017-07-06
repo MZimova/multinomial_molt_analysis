@@ -9,10 +9,12 @@
     library(readr)
     library(purrr)
     library(dplyr)
+    library(beepr)
+    library(mcmcplots)
 ################################################################################
     #  Set working directory
     #setwd("C:/Users/josh.nowak/Documents/GitHub/multinomial_molt_analysis/SSH_camera_traps")
-    setwd("/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis/SSH_camera_traps")
+    setwd("/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis")
     #  Path to data
     #jjn <- "C:/Temp/NH_hare_data2.csv"
     jjn <- "/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/data/SSH/NH_hare_data2.csv"
@@ -72,29 +74,39 @@
 
     # Parameters to monitor
     parms <- c(
-      "pp", "beta", "alpha", "sigma", "rho", "p_rand"
+      "pp", "beta", "alpha", "sigma", "rho"#, "p_rand"
       #, "elev_eff", "cat_mu" 
     )
 
     #  Call jags
-    out <- jags.parallel(
+    out <- jags(
       data = dat, 
       inits = NULL,
       parameters.to.save = parms,
       model.file = "models/multinom_mvn.txt", 
       n.chains = 3,
-      n.iter = 10000,
-      n.burnin = 5000,
+      n.iter = 200000,
+      n.burnin = 100000,
       n.thin = 3
     )
+    beep()
 ################################################################################
-    #options(max.print=100000) #extend maximum for print
-    print(out)
-    #out$BUGS$mean$cat_mu
+    #Diagnostics plots
+    mcmcplot(out, parms = c("pp", "beta", "alpha", "sigma", "rho"#, "p_rand"
+                            #, "elev_eff", "cat_mu")
+    ))
+################################################################################ 
+    
+    #extend maximum for print
+    #options(max.print=100000) 
+    print(out); #out$BUGS$mean$cat_mu
+    #save out
+    save(out, file = "/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/results/SSH/out.RData")
+    load("out.RData")
     
     #  Find start dates
     starts <- apply(out$BUGS$sims.list$pp[,3,], 1, function(x){ 
-      min(which(x < 0.9)) 
+      min(which(x < 0.895)) 
     })
     hist(starts, xlab = "Day")
     quantile(starts, c(0.025, 0.5, 0.975))
@@ -115,14 +127,9 @@
     
     #Plot start and end dates and mean pps
     plot(0, 0, 
-      type = "n", 
-      col = "red",
-      ylim = c(-.1, 1.1),
-      xlim = c(0, 200),
-      xlab = "Time",
-      ylab = "Probability of being in bin 'x'",
-      bty = "l"
-    )
+      type = "n", col = "red", bty = "l",
+      ylim = c(-.1, 1.1), xlim = c(0, 200),
+      xlab = "Time", ylab = "Probability of being in bin 'x'")
     
     day_seq <- 1:dim(out$BUGS$mean$pp)[2]
     points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray90")
@@ -130,26 +137,26 @@
     for(i in 1:3){
       lines(day_seq, out$BUGS$mean$pp[i,], col = i, type = "l")
     }
-    abline(v=c(quantile(starts, 0.5), quantile(ends, 0.5), quantile(mids, 0.5)))
+    abline(v=c(quantile(starts, 0.5)), col="green");abline(v=c(quantile(mids, 0.5)), col="red");abline(v=c(quantile(ends, 0.5)), col="black")
+    abline(v=c(quantile(starts, 0.025), quantile(starts, 0.975)), col = "green", lty = 3)
+    abline(v=c(quantile(mids, 0.025), quantile(mids, 0.975)), col = "red", lty = 3)
+    abline(v=c(quantile(ends, 0.025), quantile(ends, 0.975)), col = "black", lty = 3)
     hist(starts, add = T, freq = F, col = "green", border = "green")
     hist(ends, add = T, freq = F, col = "black", border = "black")  
     hist(mids, add = T, freq = F, col = "red", border = "red")  
-    
+    text(0, 0.2, paste("Starts =", quantile(starts, 0.025),quantile(starts, 0.5),quantile(starts, 0.975),
+                        "\nMids =", quantile(mids, 0.025),quantile(mids, 0.5),quantile(mids, 0.975),
+                        "\nEnds =", quantile(ends, 0.025),quantile(ends, 0.5),quantile(ends, 0.975)), pos = 4, cex=0.9)
+
     #writes csv with results
     out.sum <- out$BUGS$summary 
-    write.table(out.sum, file="/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/results/SSH/out2015_mvn_prand.monit_NH2.csv",sep=",")
+    write.table(out.sum, file="/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/results/out2015_mvn_NH2.csv",sep=",")
+    save(out, file = "/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/results/out.RData")
     
-     
     #  Plot with random effects
-    plot(0, 0, 
-      type = "n", 
-      col = "red",
-      ylim = c(-.1, 1.1),
-      xlim = c(0, 200),
-      xlab = "Time",
-      ylab = "Probability of being in bin 'x'",
-      bty = "l"
-    )
+    plot(0, 0, type = "n", col = "red", bty = "l",
+      ylim = c(-.1, 1.1), xlim = c(0, 200),
+      xlab = "Time",ylab = "Probability of being in bin 'x'")
     
     day_seq <- 1:dim(out$BUGS$mean$pp)[2]
     
@@ -173,15 +180,30 @@
           mat$day[i]
         ]
     }
-    mat
+    #mat
     
     #  Add lines to plot for each camera
-    points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray90")
+    points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray80")
     for(i in 1:ncategories){
       for(j in 1:ncamera){
-        lines(day_seq, out$BUGS$mean$p_rand[i,j,], col = i, type = "l")
+        lines(day_seq, out$BUGS$mean$p_rand[i,j,], col = "gray70", type = "l") #or col =i
       }
     }
+    
+    for(i in 1:3){
+      lines(day_seq, out$BUGS$mean$pp[i,], col = i, type = "l")
+    }
+    abline(v=c(quantile(starts, 0.5)), col="green");abline(v=c(quantile(mids, 0.5)), col="red");abline(v=c(quantile(ends, 0.5)), col="black")
+    abline(v=c(quantile(starts, 0.025), quantile(starts, 0.975)), col = "green", lty = 3)
+    abline(v=c(quantile(mids, 0.025), quantile(mids, 0.975)), col = "red", lty = 3)
+    abline(v=c(quantile(ends, 0.025), quantile(ends, 0.975)), col = "black", lty = 3)
+    hist(starts, add = T, freq = F, col = "green", border = "green")
+    hist(ends, add = T, freq = F, col = "black", border = "black")  
+    hist(mids, add = T, freq = F, col = "red", border = "red")  
+    text(0, 0.2, paste("Starts =", quantile(starts, 0.025),quantile(starts, 0.5),quantile(starts, 0.975),
+                       "\nMids =", quantile(mids, 0.025),quantile(mids, 0.5),quantile(mids, 0.975),
+                       "\nEnds =", quantile(ends, 0.025),quantile(ends, 0.5),quantile(ends, 0.975)), pos = 4, cex=0.9)
+    
     
 
     # legend(
@@ -194,6 +216,11 @@
 
 ################################################################################ 
     #Diagnostics plots
+    
+    mcmcplot(out, parms = c("pp", "beta", "alpha", "sigma", "rho"#, "p_rand"
+                            #, "elev_eff", "cat_mu")
+                            ))
+    
     hist(out$BUGS$sims.list$sigma[,1], breaks = 200)
     hist(out$BUGS$sims.list$sigma[,2], breaks = 200)
     hist(out$BUGS$sims.list$rho, breaks = 200)
