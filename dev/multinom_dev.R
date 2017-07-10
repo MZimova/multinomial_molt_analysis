@@ -74,21 +74,23 @@
 
     # Parameters to monitor
     parms <- c(
-      "pp", "beta", "alpha", "sigma", "rho"#, "p_rand"
+      "pp", "beta", "alpha", "sigma", "rho", "p_rand"
       #, "elev_eff", "cat_mu" 
     )
 
     #  Call jags
-    out <- jags(
+    start.time <- Sys.time()
+      out <- jags.parallel(
       data = dat, 
       inits = NULL,
       parameters.to.save = parms,
       model.file = "models/multinom_mvn.txt", 
       n.chains = 3,
-      n.iter = 200000,
-      n.burnin = 100000,
+      n.iter = 2000,
+      n.burnin = 1000,
       n.thin = 3
     )
+      end.time <- Sys.time(); (time.taken <-end.time - start.time)
     beep()
 ################################################################################
     #Diagnostics plots
