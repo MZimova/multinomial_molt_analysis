@@ -15,13 +15,13 @@ library(mcmcplots)
 #  Set working directory
 #setwd("C:/Users/josh.nowak/Documents/GitHub/multinomial_molt_analysis/SSH_camera_traps")
 #setwd("/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis")
-setwd("G:/GitHub/multinomial_molt_analysis")
+setwd("E:/GitHub/multinomial_molt_analysis")
 
 #  Path to data
 #jjn <- "C:/Temp/NH_hare_data2.csv"
 #jjn <- "/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/data/SSH/NH_hare_data2.csv"
-#jjn <- "G:/GitHub/data/SSH/merged_2014-2016_no_2010_yet.csv"
-jjn <- "G:/GitHub/data/SSH/NH_hare_data2.csv"
+jjn <- "E:/GitHub/multinomial_molt_analysis/merged_2014-2016_no_2010_yet.csv"
+#jjn <- "G:/GitHub/data/SSH/NH_hare_data2.csv"
 
 #  Source functions
 source("code/utility_functions.R")
@@ -38,7 +38,7 @@ rawd <- read_csv(
 hares <- morph_data(rawd) %>%
   filter(
     Season == "Fall",
-    Year == 2015
+    Year == 2014
   )
 ################################################################################
 #  Call a single model step by step - mimics jags_call
@@ -89,8 +89,8 @@ out <- jags.parallel(
   parameters.to.save = parms,
   model.file = "models/multinom_mvn.txt", 
   n.chains = 3,
-  n.iter = 400000,
-  n.burnin = 200000,
+  n.iter = 500000,
+  n.burnin = 300000,
   n.thin = 3
 )
 end.time <- Sys.time();(time.taken <-end.time-start.time)
@@ -103,7 +103,7 @@ beep()
 # Save results as csv
 #writes csv with results
 out.sum <- out$BUGS$summary 
-write.table(out.sum, file="G:/GitHub/multinomial_molt_analysis/results/NH2_2015_fall_mvn_400K.csv",sep=",")
+write.table(out.sum, file="E:/GitHub/multinomial_molt_analysis/results/CO_2014_fall_mvn_500K.csv",sep=",")
 
 #options(max.print=100000) #extend maximum for print
 #print(out)
@@ -113,28 +113,28 @@ out$BUGS$mean$elev_eff
 # Plots
 #  Find start dates
 starts <- apply(out$BUGS$sims.list$pp[,1,], 1, function(x){ 
-  min(which(x < 0.9)) 
-})
-hist(starts, xlab = "Day")
-quantile(starts, c(0.025, 0.5, 0.975))
+  min(which(x < 0.9)) })
+hist(starts, xlab = "Day");quantile(starts, c(0.025, 0.5, 0.975))
+starts.5 <- apply(out$BUGS$sims.list$pp[,1,], 1, function(x){ 
+  min(which(x < 0.5)) })
+hist(starts.5, xlab = "Day");quantile(starts.5, c(0.025, 0.5, 0.975))
 
 #  Find end dates
 ends <- apply(out$BUGS$sims.list$pp[,3,], 1, function(x){ 
-  min(which(x > 0.9)) 
-})
-hist(ends, xlab = "Day")
-quantile(ends, c(0.025, 0.5, 0.975))
+  min(which(x > 0.9)) })
+hist(ends, xlab = "Day");quantile(ends, c(0.025, 0.5, 0.975))
+ends.5 <- apply(out$BUGS$sims.list$pp[,3,], 1, function(x){ 
+  min(which(x > 0.5)) })
+hist(ends.5, xlab = "Day");quantile(ends.5, c(0.025, 0.5, 0.975))
 
 #  Find mid-points
 mids <- apply(out$BUGS$sims.list$pp[,2,], 1, function(x){ 
-  min(which(x == max(x)))
-})
-hist(mids, xlab = "Day")
-quantile(mids, c(0.025, 0.5, 0.975))
+  min(which(x == max(x)))})
+hist(mids, xlab = "Day");quantile(mids, c(0.025, 0.5, 0.975))
 
 #Plot start and end dates and mean pps
 plot(0, 0, type = "n", col = "red", bty = "l",
-     ylim = c(-.1, 1.1), xlim = c(150, 365),
+     ylim = c(-.1, 1.1), xlim = c(200, 365),
      xlab = "Time", ylab = "Probability of being in bin 'x'")
 
 day_seq <- 1:dim(out$BUGS$mean$pp)[2]
@@ -143,19 +143,26 @@ points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray60"
 for(i in 1:3){
   lines(day_seq, out$BUGS$mean$pp[i,], col = i, type = "l")
 }
-abline(v=c(quantile(starts, 0.5)), col="green");abline(v=c(quantile(mids, 0.5)), col="red");abline(v=c(quantile(ends, 0.5)), col="black")
+abline(v=c(quantile(starts, 0.5)), col="green");abline(v=c(quantile(ends, 0.5)), col="black")#;abline(v=c(quantile(mids, 0.5)), col="red")
 abline(v=c(quantile(starts, 0.025), quantile(starts, 0.975)), col = "green", lty = 3)
-abline(v=c(quantile(mids, 0.025), quantile(mids, 0.975)), col = "red", lty = 3)
+#abline(v=c(quantile(mids, 0.025), quantile(mids, 0.975)), col = "red", lty = 3)
 abline(v=c(quantile(ends, 0.025), quantile(ends, 0.975)), col = "black", lty = 3)
-hist(starts, add = T, freq = F, col = "green", border = "green")
-hist(ends, add = T, freq = F, col = "black", border = "black")  
-hist(mids, add = T, freq = F, col = "red", border = "red")  
-text(150, 0.2, paste("NH 2015 fall, 400K/200K",
+hist(starts, add = T, freq = F, col = "green", border = "green");hist(ends, add = T, freq = F, col = "black", border = "black");hist(mids, add = T, freq = F, col = "red", border = "red")  
+
+ abline(v=c(quantile(starts.5, 0.5)), col="blue");abline(v=c(quantile(ends.5, 0.5)), col="blue")
+# abline(v=c(quantile(starts.5, 0.025), quantile(starts.5, 0.975)), col = "green", lty = 3)
+# abline(v=c(quantile(mids.5, 0.025), quantile(mids.5, 0.975)), col = "red", lty = 3)
+# abline(v=c(quantile(ends.5, 0.025), quantile(ends.5, 0.975)), col = "black", lty = 3)
+
+text(200, 0.3, paste("CO 2014 fall, 500K/300K conv",
                    #"\nelev_eff1 =", quantile(signif(out$BUGS$sims.list$elev_eff[,1],digits=2),0.025),quantile(signif(out$BUGS$sims.list$elev_eff[,1],digits=2),0.5),quantile(signif(out$BUGS$sims.list$elev_eff[,1],digits=2),0.925),
                    #"\nelev_eff2 =", quantile(signif(out$BUGS$sims.list$elev_eff[,2],digits=2),0.025),quantile(signif(out$BUGS$sims.list$elev_eff[,2],digits=2),0.5),quantile(signif(out$BUGS$sims.list$elev_eff[,2],digits=2),0.925),
                    "\nStarts =", quantile(starts, 0.025),quantile(starts, 0.5),quantile(starts, 0.975),
                    "\nMids =", quantile(mids, 0.025),quantile(mids, 0.5),quantile(mids, 0.975),
-                   "\nEnds =", quantile(ends, 0.025),quantile(ends, 0.5),quantile(ends, 0.975)), pos = 4, cex=0.9)
+                   "\nEnds =", quantile(ends, 0.025),quantile(ends, 0.5),quantile(ends, 0.975), 
+     "\nStarts.5 =", quantile(starts.5, 0.025),quantile(starts.5, 0.5),quantile(starts.5, 0.975),
+     "\nEnds.5 =", quantile(ends.5, 0.025),quantile(ends.5, 0.5),quantile(ends.5, 0.975)), 
+                    pos = 4, cex=0.9)
 
 
 
