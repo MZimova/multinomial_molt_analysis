@@ -4,7 +4,7 @@
 
     model{
 
-      for(i in 1:2){ #prev had 'i in 1:2'
+      for(i in 1:(nbins - 1)){ #prev had 'i in 1:2'
         elev_eff[i] ~ dnorm(0, 0.001)
         #esnow_eff[i] ~ dnorm(0, 0.001)
       }

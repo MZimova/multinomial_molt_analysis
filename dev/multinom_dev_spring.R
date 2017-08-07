@@ -73,13 +73,13 @@ dat <- list(
   y = response,
   nbins = 3,
   ndays = last_day,
-  ncam = length(unique(hares$CameraNum)),
-  elev = as.numeric(hares$Elevation)
+  ncam = length(unique(hares$CameraNum))#,
+  #elev = as.numeric(hares$Elevation)
 )
 
 # Parameters to monitor
 parms <- c("beta", "alpha","pp",
-"sigma_cam","tau_cam","elev_eff"#,
+"sigma_cam","tau_cam"#,"elev_eff"#,
   #"sigma", "rho", 
   #"p_rand","cat_mu" 
 )
@@ -90,7 +90,7 @@ out <- jags.parallel(
   data = dat, 
   inits = NULL,
   parameters.to.save = parms,
-  model.file = "models/multinom_covs.txt", 
+  model.file = "models/multinom.txt", 
   n.chains = 3,
   n.iter = 10000,
   n.burnin = 5000,
@@ -146,12 +146,12 @@ points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray70"
 for(i in 1:3){
   lines(day_seq, out$BUGS$mean$pp[i,], col = i, type = "l")
 }
-abline(v=c(quantile(starts, 0.5)), col="green");abline(v=c(quantile(mids, 0.5)), col="red");abline(v=c(quantile(ends, 0.5)), col="black")
-abline(v=c(quantile(starts, 0.025), quantile(starts, 0.975)), col = "green", lty = 3)
+abline(v=c(quantile(starts, 0.5)), col="black");abline(v=c(quantile(mids, 0.5)), col="red");abline(v=c(quantile(ends, 0.5)), col="green")
+abline(v=c(quantile(starts, 0.025), quantile(starts, 0.975)), col = "black", lty = 3)
 abline(v=c(quantile(mids, 0.025), quantile(mids, 0.975)), col = "red", lty = 3)
-abline(v=c(quantile(ends, 0.025), quantile(ends, 0.975)), col = "black", lty = 3)
-hist(starts, add = T, freq = F, col = "green", border = "green")
-hist(ends, add = T, freq = F, col = "black", border = "black")  
+abline(v=c(quantile(ends, 0.025), quantile(ends, 0.975)), col = "green", lty = 3)
+hist(starts, add = T, freq = F, col = "black", border = "black")
+hist(ends, add = T, freq = F, col = "green", border = "green")  
 hist(mids, add = T, freq = F, col = "red", border = "red")  
 text(0, 0.2, paste("NH springs elev, 100K/50K",
                    "\nelev_eff1 =", quantile(signif(out$BUGS$sims.list$elev_eff[,1],digits=2),0.025),quantile(signif(out$BUGS$sims.list$elev_eff[,1],digits=2),0.5),quantile(signif(out$BUGS$sims.list$elev_eff[,1],digits=2),0.925),
@@ -203,12 +203,12 @@ for(i in 1:ncategories){
 for(i in 1:3){
   lines(day_seq, out$BUGS$mean$pp[i,], col = i, type = "l")
 }
-abline(v=c(quantile(starts, 0.5)), col="green");abline(v=c(quantile(mids, 0.5)), col="red");abline(v=c(quantile(ends, 0.5)), col="black")
-abline(v=c(quantile(starts, 0.025), quantile(starts, 0.975)), col = "green", lty = 3)
+abline(v=c(quantile(starts, 0.5)), col="black");abline(v=c(quantile(mids, 0.5)), col="red");abline(v=c(quantile(ends, 0.5)), col="green")
+abline(v=c(quantile(starts, 0.025), quantile(starts, 0.975)), col = "black", lty = 3)
 abline(v=c(quantile(mids, 0.025), quantile(mids, 0.975)), col = "red", lty = 3)
-abline(v=c(quantile(ends, 0.025), quantile(ends, 0.975)), col = "black", lty = 3)
-hist(starts, add = T, freq = F, col = "green", border = "green")
-hist(ends, add = T, freq = F, col = "black", border = "black")  
+abline(v=c(quantile(ends, 0.025), quantile(ends, 0.975)), col = "green", lty = 3)
+hist(starts, add = T, freq = F, col = "black", border = "black")
+hist(ends, add = T, freq = F, col = "green", border = "green")  
 hist(mids, add = T, freq = F, col = "red", border = "red")  
 text(0, 0.2, paste("Starts =", quantile(starts, 0.025),quantile(starts, 0.5),quantile(starts, 0.975),
                    "\nMids =", quantile(mids, 0.025),quantile(mids, 0.5),quantile(mids, 0.975),
