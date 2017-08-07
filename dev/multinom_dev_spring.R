@@ -15,15 +15,15 @@ library(mcmcplots)
 #  Set working directory
     #for Mac: /Volumes/HP for PC E:
 #setwd("C:/Users/josh.nowak/Documents/GitHub/multinomial_molt_analysis/SSH_camera_traps")
-#setwd("/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis")
-setwd("G:/GitHub/multinomial_molt_analysis")
+setwd("/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis")
+#setwd("G:/GitHub/multinomial_molt_analysis")
 
 
 #  Path to data
 #jjn <- "C:/Temp/NH_hare_data2.csv"
-#jjn <- "/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/data/SSH/NH_hare_data2.csv"
+jjn <- "/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/data/NH_hare_data2.csv"
 #jjn <- "G:/GitHub/data/SSH/NH_hare_data2.csv"
-jjn <- "G:/GitHub/data/SSH/merged_2014-2016_no_2010_yet.csv"
+#jjn <- "G:/GitHub/data/SSH/merged_2014-2016_no_2010_yet.csv"
 
 #  Source functions
 source("code/utility_functions.R")
@@ -39,8 +39,8 @@ rawd <- read_csv(
 #  Morph raw data
 hares <- morph_data(rawd) %>%
   filter(
-    Season == "Spring"#,
-    #Year == 2015
+    Season == "Spring",
+    Year == 2015
   )
 ################################################################################
 #  Call a single model step by step - mimics jags_call
@@ -78,8 +78,9 @@ dat <- list(
 )
 
 # Parameters to monitor
-parms <- c(
-  "pp", "beta", "alpha", "sigma", "rho", "elev_eff"#, 
+parms <- c("beta", "alpha","pp",
+"sigma_cam","tau_cam","elev_eff"#,
+  #"sigma", "rho", 
   #"p_rand","cat_mu" 
 )
 
@@ -89,10 +90,10 @@ out <- jags.parallel(
   data = dat, 
   inits = NULL,
   parameters.to.save = parms,
-  model.file = "models/multinom_mvn_covs.txt", 
+  model.file = "models/multinom_covs.txt", 
   n.chains = 3,
-  n.iter = 200000,
-  n.burnin = 100000,
+  n.iter = 10000,
+  n.burnin = 5000,
   n.thin = 3
 )
 end.time <- Sys.time();(time.taken <-end.time-start.time)
@@ -105,11 +106,11 @@ beep()
 # Save results as csv
 #writes csv with results
   out.sum <- out$BUGS$summary 
-  write.table(out.sum, file="G:/GitHub/multinomial_molt_analysis/results/NH_springs_elev_mvn_100K.csv",sep=",")
+  write.table(out.sum, file="/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis/results/test_1thrubin.csv",sep=",")
 
 #options(max.print=100000) #extend maximum for print
-#print(out)
-out$BUGS$mean$elev_eff
+print(out)
+#out$BUGS$mean$elev_eff
 
 ################################################################################
 # Plots
