@@ -14,14 +14,13 @@ library(mcmcplots)
 ################################################################################
 #  Set working directory
 #setwd("C:/Users/josh.nowak/Documents/GitHub/multinomial_molt_analysis/SSH_camera_traps")
-#setwd("/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis")
-setwd("G:/GitHub/multinomial_molt_analysis")
+setwd("/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis")
+#setwd("G:/GitHub/multinomial_molt_analysis")
 
 #  Path to data
 #jjn <- "C:/Temp/NH_hare_data2.csv"
-#jjn <- "/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/data/SSH/NH_hare_data2.csv"
-#jjn <- "E:/GitHub/multinomial_molt_analysis/merged_2014-2016_no_2010_yet.csv"
-jjn <- "G:/GitHub/data/NH_hare_data2.csv"
+jjn <- "/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/data/NH_hare_data2.csv"
+#jjn <- "G:/GitHub/data/NH_hare_data2.csv"
 
 #  Source functions
 source("code/utility_functions.R")
@@ -37,8 +36,8 @@ rawd <- read_csv(
 #  Morph raw data
 hares <- morph_data(rawd) %>%
   filter(
-    Season == "Fall"#,
-    #Year == 2014
+    Season == "Fall",
+    Year == 2014
   )
 ################################################################################
 #  Call a single model step by step - mimics jags_call
@@ -67,17 +66,17 @@ inits <- function(){
 dat <- list(
   nobs = nrow(hares),
   day = days, 
-  cam = as.numeric(as.factor(hares$CameraNum)),
+  #cam = as.numeric(as.factor(hares$CameraNum)),
   y = response,
   nbins = 3,
-  ndays = last_day,
-  ncam = length(unique(hares$CameraNum)),
-  elev = as.numeric(hares$Elevation)
+  ndays = last_day
+  #ncam = length(unique(hares$CameraNum)),
+  #elev = as.numeric(hares$Elevation)
 )
 
 # Parameters to monitor
 parms <- c(
-  "pp", "beta", "alpha","elev_eff"#, "p_rand",
+  "pp", "beta", "alpha"#,"elev_eff"#, "p_rand",
   #"rho"#, #,"cat_mu" 
 )
 
@@ -87,10 +86,10 @@ out <- jags.parallel(
   data = dat, 
   inits = NULL,
   parameters.to.save = parms,
-  model.file = "models/multinom_covs.txt", 
+  model.file = "models/multinom_no_random_effs.txt", 
   n.chains = 3,
   n.iter = 200000,
-  n.burnin = 50000,
+  n.burnin = 100000,
   n.thin = 3
 )
 end.time <- Sys.time();(time.taken <-end.time-start.time)
@@ -103,7 +102,7 @@ beep()
 # Save results as csv
 #writes csv with results
 out.sum <- out$BUGS$summary 
-write.table(out.sum, file="G:/GitHub/results/NHfalls_200K_nomvn.csv",sep=",")
+write.table(out.sum, file="/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/results/SSH/fall.csv",sep=",")
 
 #options(max.print=100000) #extend maximum for print
 print(out)
@@ -115,17 +114,13 @@ str(out)
 starts <- apply(out$BUGS$sims.list$pp[,1,], 1, function(x){ 
   min(which(x < 0.75)) })
 hist(starts, xlab = "Day");quantile(starts, c(0.025, 0.5, 0.975))
-starts.5 <- apply(out$BUGS$sims.list$pp[,1,], 1, function(x){ 
-  min(which(x < 0.5)) })
-hist(starts.5, xlab = "Day");quantile(starts.5, c(0.025, 0.5, 0.975))
+#starts.5 <- apply(out$BUGS$sims.list$pp[,1,], 1, function(x){min(which(x < 0.5)) }); hist(starts.5, xlab = "Day");quantile(starts.5, c(0.025, 0.5, 0.975))
 
 #  Find end dates
 ends <- apply(out$BUGS$sims.list$pp[,3,], 1, function(x){ 
   min(which(x > 0.75)) })
 hist(ends, xlab = "Day");quantile(ends, c(0.025, 0.5, 0.975))
-ends.5 <- apply(out$BUGS$sims.list$pp[,3,], 1, function(x){ 
-  min(which(x > 0.5)) })
-hist(ends.5, xlab = "Day");quantile(ends.5, c(0.025, 0.5, 0.975))
+#ends.5 <- apply(out$BUGS$sims.list$pp[,3,], 1, function(x){min(which(x > 0.5)) }); hist(ends.5, xlab = "Day");quantile(ends.5, c(0.025, 0.5, 0.975))
 
 #  Find mid-points
 mids <- apply(out$BUGS$sims.list$pp[,2,], 1, function(x){ 

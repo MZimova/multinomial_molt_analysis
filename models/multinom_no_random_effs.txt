@@ -1,0 +1,33 @@
+#  Basic multinomial describing how white the population is by time
+#no fixed effects
+#no random effects
+
+
+model{
+
+  for(i in 1:(nbins - 1)){
+    alpha[i] ~ dnorm(0, 0.001)
+  }
+
+  for(i in 1:(nbins - 1)){
+    beta[i] ~ dnorm(0, 0.001)
+  }
+
+  for(d in 1:ndays){
+    log(p_exp[1,d]) <- alpha[1] +
+      beta[1] * d
+    log(p_exp[2,d]) <- alpha[2] +
+      beta[2] * d
+    log(p_exp[3,d]) <- 0
+
+    p_sum[d] <- sum(p_exp[,d])
+
+    pp[1,d] <- p_exp[1,d]/p_sum[d]
+    pp[2,d] <- p_exp[2,d]/p_sum[d]
+    pp[3,d] <- p_exp[3,d]/p_sum[d]
+  }
+
+  for(i in 1:nobs){
+    y[i] ~ dcat(p_exp[,day[i]]) 
+  }
+}
