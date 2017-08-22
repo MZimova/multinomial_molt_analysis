@@ -34,11 +34,16 @@ rawd <- read_csv(
 
 ################################################################################
 #  Morph raw data
-hares <- morph_data(rawd) %>%
+hares2 <- morph_data(rawd) %>%
   filter(
     Season == "Fall",
     Year == 2014
   )
+
+# Merge snow data with hare  data
+Rutgers <-read.csv("/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/analysis SNOW/Rutgers/weekly data/Rutgers_NH_1980_2016.csv");Rutgers$Camera<-as.character(Rutgers$Camera)
+hares <-left_join(hares2, Rutgers[ ,c("First_snow_Jul","Camera","Year")], by=c("Year","Camera"), all.x=TRUE)
+
 ################################################################################
 #  Call a single model step by step - mimics jags_call
 #  Set time_scale for the analysis
@@ -66,17 +71,18 @@ inits <- function(){
 dat <- list(
   nobs = nrow(hares),
   day = days, 
-  #cam = as.numeric(as.factor(hares$CameraNum)),
+  cam = as.numeric(as.factor(hares$CameraNum)),
   y = response,
   nbins = 3,
-  ndays = last_day
-  #ncam = length(unique(hares$CameraNum)),
-  #elev = as.numeric(hares$Elevation)
+  ndays = last_day,
+  ncam = length(unique(hares$CameraNum)),
+  elev = as.numeric(hares$Elevation),
+  on_snow = as.numeric(hares$First_snow_Jul)
 )
 
 # Parameters to monitor
 parms <- c(
-  "pp", "beta", "alpha"#,"elev_eff"#, "p_rand",
+  "pp", "beta", "alpha","elev_eff", "on_snow_eff"#, "p_rand",
   #"rho"#, #,"cat_mu" 
 )
 
@@ -86,10 +92,10 @@ out <- jags.parallel(
   data = dat, 
   inits = NULL,
   parameters.to.save = parms,
-  model.file = "models/multinom_no_random_effs.txt", 
+  model.file = "models/multinom_covs.txt", 
   n.chains = 3,
-  n.iter = 200000,
-  n.burnin = 100000,
+  n.iter = 2000,
+  n.burnin = 1000,
   n.thin = 3
 )
 end.time <- Sys.time();(time.taken <-end.time-start.time)
@@ -106,7 +112,7 @@ write.table(out.sum, file="/Users/marketzimova/Documents/WORK/DISSERTATION/GitHu
 
 #options(max.print=100000) #extend maximum for print
 print(out)
-out$BUGS$mean$elev_eff
+out$BUGS$mean$on_snow_eff
 str(out)
 ################################################################################
 # Plots
