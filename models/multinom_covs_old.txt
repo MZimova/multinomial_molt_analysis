@@ -1,8 +1,14 @@
     #  Basic multinomial describing how white the population is by time
 	#random effects on camera
-	#no fixed effects
+	#fixed effects varying by camera
 
     model{
+
+      for(i in 1:(nbins - 1)){ #prev had 'i in 1:2'
+        #elev_eff[i] ~ dnorm(0, 0.001)
+        #on_snow_eff[i] ~ dnorm(0, 0.001)
+        year_eff[i] ~ dnorm(0, 0.001)
+      }
 
       for(i in 1:(nbins - 1)){
         alpha[i] ~ dnorm(0, 0.001)
@@ -12,7 +18,7 @@
         beta[i] ~ dnorm(0, 0.001)
       }
 
-      for(i in 1:(nbins - 1)){ 
+      for(i in 1:(nbins - 1)){
         tau_cam[i] ~ dunif(0, 100)
         sig_cam[i] <- 1/sqrt(tau_cam[i])
 
@@ -25,10 +31,14 @@
         for(d in 1:ndays){
           log(p_exp[1,c,d]) <- alpha[1] +
             beta[1] * d +
+            elev_eff[1] * elev[c] +
+            on_snow_eff[1] * on_snow[c] +
             cam_eff[1,c]
 
           log(p_exp[2,c,d]) <- alpha[2] +
             beta[2] * d +
+            elev_eff[2] * elev[c] +
+            on_snow_eff[2] * on_snow[c] +
             cam_eff[2,c]
 
           log(p_exp[3,c,d]) <- 0

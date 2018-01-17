@@ -1,8 +1,12 @@
     #  Basic multinomial describing how white the population is by time
 	#random effects on camera
-	#no fixed effects
+	#fixed effects varying by camera
 
     model{
+
+      for(i in 1:(nbins - 1)){
+        ytemp_eff[i] ~ dnorm(0, 0.001)
+      }
 
       for(i in 1:(nbins - 1)){
         alpha[i] ~ dnorm(0, 0.001)
@@ -12,7 +16,7 @@
         beta[i] ~ dnorm(0, 0.001)
       }
 
-      for(i in 1:(nbins - 1)){ 
+      for(i in 1:(nbins - 1)){
         tau_cam[i] ~ dunif(0, 100)
         sig_cam[i] <- 1/sqrt(tau_cam[i])
 
@@ -23,21 +27,25 @@
 
       for(c in 1:ncam){
         for(d in 1:ndays){
-          log(p_exp[1,c,d]) <- alpha[1] +
-            beta[1] * d +
-            cam_eff[1,c]
+          for(e in 1:nyr){
+            log(p_exp[1,c,d,e]) <- alpha[1] +
+              beta[1] * d +
+              ytemp_eff[1] * ytemp[c,d,e] +
+              cam_eff[1,c]
 
-          log(p_exp[2,c,d]) <- alpha[2] +
-            beta[2] * d +
-            cam_eff[2,c]
+            log(p_exp[2,c,d,e]) <- alpha[2] +
+              beta[2] * d +
+              ytemp_eff[2] * ytemp[c,d,e] +
+              cam_eff[2,c]
 
-          log(p_exp[3,c,d]) <- 0
+            log(p_exp[3,c,d,e]) <- 0
 
-          p_sum[c,d] <- sum(p_exp[,c,d])
+            p_sum[c,d] <- sum(p_exp[,c,d])
 
-          p_rand[1,c,d] <- p_exp[1,c,d]/p_sum[c,d]
-          p_rand[2,c,d] <- p_exp[2,c,d]/p_sum[c,d]
-          p_rand[3,c,d] <- p_exp[3,c,d]/p_sum[c,d]
+            p_rand[1,c,d] <- p_exp[1,c,d]/p_sum[c,d]
+            p_rand[2,c,d] <- p_exp[2,c,d]/p_sum[c,d]
+            p_rand[3,c,d] <- p_exp[3,c,d]/p_sum[c,d]
+          }
         }
       }
 

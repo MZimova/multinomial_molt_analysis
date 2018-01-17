@@ -1,9 +1,9 @@
 #  Multinomial analysis to calculate molt start and end dates 
-     # (and covariates effects) in SSH
+     # (and covariates effects) in SHH
 # 3 categories of molt
 # Random effects on camera traps
 #  06/2017
-#  Josh Nowak and Marketa Zimova
+#  Josh Nowak
 ################################################################################
 library(R2jags)
 library(readr)
@@ -12,233 +12,99 @@ library(dplyr)
 library(beepr)
 library(mcmcplots)
 library(ggplot2)
-library(lubridate)
 ############################################################################
-# Load data  
+  # Load hare data  
+setwd('//Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study')
+# run to merge 3 sites hare data or run manually or load saved one
+  # source('analysis and code/SSH_data prep.R')
+# load from RData
+load('data/hares_daymet_present_cl.RData')
+hares_daymet <-hares_daymet_cl
 
-# 1. Load hare data  
-load("/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/data/hares_cl.RData")
-hares <- select(hares_cl, Site, White3, White, Julian, Cluster, Year, fCluster, Camera) %>%
-  #subset(Julian >200 & Site=="Can")# & Year==2015) # FALL
-  subset(Julian >50 & Julian <200 & Site=="Can")# & Year==2015) #SPRING
+# or to check whether better with clusters
+#load('data/finalhares_3sites_WhiteNoNAs_1kmclusters.Rdata')
 
-# if testing temp effect in CO--- remove CO_68: it is missing daymet! 
-#hares <-filter(hares,Cluster != 68)
+# all sites spring
+hares <- subset(hares_daymet, Julian >50 & Julian <190 & Site=="Can")
+# hares <- subset(hares_1kmcluster, Julian >50 & Julian <190 & Site=="Can")
 
-(fClustercount<-length(unique(hares$fCluster)))
+ggplot(hares, aes(Julian, White,colour=as.factor(Site))) + geom_jitter(width = 0.05, height = 0.05)
 
-# If want to run it with daily covariates: 
-# Create new camera x year identifier
-hares <- mutate(hares,ClusterYr = paste(fCluster, Year, sep = '_')) %>%
-arrange(ClusterYr,Julian)
-(ClusterYrcount<-length(unique(hares$ClusterYr)))
-
-# 2. Load camera data (for selected hares data above)
-load("/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/data/cameras.RData")
-camera_names <- unique(hares$fCluster)
-cameras <- filter(cameras, fCluster %in% camera_names)
-(fClustercount <-length(unique(cameras$fCluster)))
-
-# summary <- hares %>%
-#   group_by(Cluster,White3) %>%
-#   summarize(counts=n())
-# ggplot(summary, aes(as.factor(Cluster),White3,size=counts,colour=as.factor(White3))) + 
-#   geom_jitter(width = 0, height = .3)
-
-ggplot(hares, aes(Julian, White,colour=as.factor(Cluster))) + geom_jitter(width = 1, height = 1) + theme(legend.position = "none") 
 ################################################################################
 #  Call a single model step by step - mimics jags_call
-#  Set time_scale for the analysis (options are in the column names of hares, Month, Week, Julian)
-time_scale <- "Julian" 
+#  Set time_scale for the analysis (pptions are in the column names of hares, Month, Week, Julian)
+setwd("/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis")
+time_scale <- "Julian"
 load.module("glm")
 
 #  Subset to days - to reduce redundancy and ease inits and data create
-# unlist makes anything into a vector: here subsetting for one column such as [all rows,column 'Julian']
 days <- as.integer(unlist(hares[,time_scale]))
-(first_day <- min(days))
-(last_day <- max(days))
-(my_year <-  as.integer(unique(hares$Year))) # not using currenty for anything
+first_day <- min(days)
+last_day <- max(days)
 
 #  Create categorical response
-hares$response <- cut(hares$White3, 3, labels = 1:3) # 1 is brown
-# used to have: response <- cut(hares$White3, 3, labels = 1:3) (or: response <- ordered(response) to make it ordered but same result)
-#### or flip white and brown here if want:
-# hares <- mutate(hares, White3_flipped= abs(White3-4))
-# hares$response <- cut(hares$White3_flipped, 3, labels = 1:3) # 1 is brown
-ggplot(hares, aes(Julian, response, colour=fCluster)) + geom_jitter(width = .1, height = .1) + theme(legend.position = "none") 
+response <- cut(hares$White3, 3, labels = 1:3)
+
+# made it ordered
+#response <- ordered(response)
 
 #  Inits
 inits <- function(){
   list(
     alpha = rnorm(3)
-  )}
+  )
+}
 
-################################################################################################################################ 
-# #  Prepare data - all covariates on camera basis so run following to make camera cluster basis:
-# Spatial data (Elev, Lat, Lon)
-# GeoCL <- cameras %>%
-#   group_by(fCluster) %>% # hide if interested in running models on camera basis
-#   summarize(ElevCl= mean(Elevation),
-#             LatCl=mean(Lat),
-#             LonCl=mean(Lon)) %>%
-#   mutate(ElevSC=scale(ElevCl),
-#          LatSC=scale(LatCl),
-#         LonSC=scale(LonCl)) %>%  #centers and scales (both default true)
-#   arrange(fCluster)
-
-################################################################################################################################
-# #  Seasonal snow data = livneh 
-# load('/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/data/past_livneh_snowseas.RData')
-# livneh <- past_livneh %>%
-#   filter(fCluster %in% camera_names) %>%
-#   mutate(FirstSC =scale(First),
-#        LastSC =scale(Last)) %>%  #centers and scales (both default true)
-#   arrange(fCluster) %>%
-#   na.omit() # check if any NAs!
-# length(unique(livneh$fCluster))
- 
-################################################################################################################################
-# #  Temperature data (seasonal 30-yr normals 1980-2009)
-# load('/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/data/past_daymet_seas.RData')
-# past_daymet <- past_daymet_seas %>%
-#   filter(fCluster %in% camera_names)
-# 
-# past_daymet<- past_daymet %>%
-#   filter(season==1)  %>% # 1 is spring
-#   group_by(fCluster) %>% # hide if interested in running models on camera basis
-#   summarize(tavg30 =mean(season_30tavg),
-#             tmin30 =mean(season_30tmin),
-#             tmax30 =mean(season_30tmax),
-#             Cluster =mean(Cluster)) %>%
-#   mutate(tavg30SC =scale(tavg30),
-#          tmin30SC =scale(tmin30),
-#          tmax30SC =scale(tmax30)) %>%  #centers and scales (both default true)
-#   arrange(fCluster) # had Cluster before but that is wrong I think
-# length(unique(past_daymet$fCluster))
-
-################################################################################################################################
-## Daily daymet temps during 2010-2016
-load("/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/data/daymet_2010_2016.RData")
-cams <- select(cameras, Camera, fCluster, Cluster)
-
-daymet <- daymet_data %>%
-  mutate(Julian=yday(Date),
-         Year=year(Date)) %>%
-  filter(Julian <= last_day) %>% #but shoud go: Julian>= first_day & Julian <= last_day)
-  left_join(cams)  %>%
-  select(fCluster, Julian, tmax, Year) %>%
-  #filter(fCluster %in% camera_names,
-  #       Year %in% my_year) %>%
-  mutate(ClusterYr = paste(fCluster, Year, sep = '_')) %>%
-  filter(ClusterYr %in% unique(hares$ClusterYr))
-
-spread_daymet <- daymet %>%
-  group_by(ClusterYr, Julian) %>%
-  summarise(tmax = mean(tmax, na.rm = T)) %>%
-  mutate(tmax =scale(tmax)) %>%
-  ungroup %>%
-  tidyr::spread(Julian, tmax) %>%
-  #na.omit() %>% check if any NAs!
-  arrange(ClusterYr) %>%
-  select(-ClusterYr) #%>%
-  #slice(1:172) #to check whether have the right dimensions
-  #select(-99)  #to check whether have the right dimensions
-# should be as wide as #of days 1:200 usually
-# should be as long as # of whatever cams is in dat
-length(unique(daymet$ClusterYr))
-length(unique(hares$ClusterYr))
-
-###########################################################################################################################
-# Yearly daymet temps 2010-2016
-load('/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/analysis SNOW/Daymet/metrics calculated w daily data/daymet_monthly_seasonally_2010-2016.RData')
-cams <- select(cameras, Camera, fCluster, Cluster)
-
-# Choose season and calculate cluster yearly averages
-spring <- daymet_data %>%
-  filter(season==1) %>% # spring is 1
-  select(Camera, year, season_tavg, season_tmin,season_tmax) %>%
-  left_join(cams) %>% 
-  na.omit() %>%
-  group_by(fCluster,year) %>%
-  summarise(season_tavg = mean(season_tavg),
-            season_tmin = mean(season_tmin),
-            season_tmax = mean(season_tmax)) %>%
-  mutate(season_tavg =scale(season_tavg),
-         season_tmin =scale(season_tmin),
-         season_tmax =scale(season_tmax))
-
-# Attach seasonal temps to selected days
-yearly_daymet <- daymet_data %>%
-  mutate(Julian=yday(Date)) %>%
-  filter(year %in% my_year, 
-         Julian <= last_day) %>%
-  left_join(cams) %>% 
-  select(fCluster, year, Julian, Date) %>%
-  left_join(spring) %>% 
-  na.omit() %>% 
-  arrange(fCluster,Date)
-
-####################################################################################
-# Gather data 
+#  Gather data
 dat <- list(
   nobs = nrow(hares),
   day = days, 
-  nyr= length(my_year),
-  #cam = as.numeric(as.factor(hares$fCluster)), #if running with yearly (eg ytemp) or cluster varying covariates (eg elev)
-  cam = as.numeric(as.factor(hares$ClusterYr)), # if running with daily varying covariates (eg dtemp)
-  y = hares$response,
+  cam = as.numeric(as.factor(hares$CameraNum)), #change to camera
+  y = response,
   nbins = 3,
   ndays = last_day,
-  #ncam = length(unique(hares$fCluster)), # if running with yearly (eg ytemp) or cluster varying covariates (eg elev)
-  ncam = length(unique(hares$ClusterYr)), # if running with daily varying covariates (eg dtemp)
-  dtemp = spread_daymet # daily and by camera varying 
-  #elev = as.numeric(GeoCL$ElevSC) # by camera varying
-  #ytemp = as.numeric(yearly_daymet$season_tavg) # yearly and by camera varying
+  ncam = length(unique(hares$CameraNum)), #change to camera
+  elev = as.numeric(hares$Elevation)
+  #lat = as.numeric(hares$Lat)
+  #season_tavg = as.numeric(hares$cl_Pres.spring_tmin)
 )
 
 # Parameters to monitor
-parms <- c("beta", "alpha","pp","sigma_cam","tau_cam",
-           "ytemp","dtemp_eff","elev_eff"#,
+parms <- c("beta", "alpha","pp","sigma_cam","tau_cam", "d_elev_eff" #"season_tavg_eff"
+           #"elev_eff", "lat_eff"#,
            #"sigma", "rho", p_rand","cat_mu" 
 )
 
 #  Call jags
-setwd("/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis") #for the model location
 start.time <- Sys.time()
-out <- jags.parallel( #or just jags
+out <- jags.parallel(
   data = dat, 
   inits = NULL,
   parameters.to.save = parms,
-  model.file = "models/multinom_covs.txt", #works for anything except for ytemp
-  #model.file = "models/multinom_covs_yr.txt", # for yearly varying covs (=ytemp)  
+  model.file = "models/multinom_covs_inter.txt", #multinom_covs
   n.chains = 3,
-  n.iter = 100,
-  n.burnin = 50,
+  n.iter = 1000,
+  n.burnin = 100,
   n.thin = 3
 )
 end.time <- Sys.time();(time.taken <-end.time-start.time)
 beep()
-################################################################################
 
-out.sum <- out$BUGS$summary 
-#write.table(out.sum, file="results/test_1thrubin.csv",sep=",")
-options(max.print=2000) #extend maximum for print
-print(out)
-
-#out$BUGS$mean$lat_eff
-#recompile(out)
-#out <- update(out, n.iter=5000)
-
-# cool plot, doesn't work now right now
-# ggplot(hares) +
-#   #facet_grid(Year ~ .) +
-#   geom_jitter(aes(Julian, response, fill=as.numeric(elev)), width = 1, height = .3,
-#               pch=21, colour="Black", size=2.5, alpha=0.65) +
-#   ggtitle("New England") +
-#   scale_fill_gradientn(colours = rev(rainbow(2))) # or rev(rainbow(2)) or terrain.colors(10)
 ################################################################################
 # Save results out
 #save(out, file = "/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis/out_CO_lat_elev.RData")
+#load("out_CO_yr_all.RData")
+
+# Save results as csv
+#writes csv with results
+out.sum <- out$BUGS$summary 
+#write.table(out.sum, file="/Users/marketzimova/Documents/WORK/DISSERTATION/GitHub/multinomial_molt_analysis/results/test_1thrubin.csv",sep=",")
+
+options(max.print=100) #extend maximum for print
+print(out)
+#out$BUGS$mean$lat_eff
+
+#not avg, maybe min has negative effect on 2= p of changing as opposed to being brown decreases as temperature is warmer (in warmer temp youre more likely to be brown than changing)
 ################################################################################
 # Plots
 #  Find start dates
@@ -268,7 +134,7 @@ plot(0, 0, type = "n", col = "red", bty = "l",
      xlab = "Time", ylab = "Probability of being in bin 'x'")
 
 day_seq <- 1:dim(out$BUGS$mean$pp)[2]
-points(hares$Julian, jitter(hares$White/100), pch = 19, cex = 1, col = "gray70")
+points(hares$Julian, jitter(hares$White), pch = 19, cex = 1, col = "gray70")
 
 for(i in 1:3){
   lines(day_seq, out$BUGS$mean$pp[i,], col = i, type = "l")
@@ -280,7 +146,7 @@ abline(v=c(quantile(ends, 0.025), quantile(ends, 0.975)), col = "green", lty = 3
 hist(starts, add = T, freq = F, col = "black", border = "black")
 hist(ends, add = T, freq = F, col = "green", border = "green")  
 hist(mids, add = T, freq = F, col = "red", border = "red")  
-text(0, 0.2, paste("Can all w elev, 5K/1H",
+text(0, 0.2, paste("CO all, 5K/5H",
                    #"\nyear_eff15 =", quantile(signif(out$BUGS$sims.list$year_eff[,1],digits=2),0.025),quantile(signif(out$BUGS$sims.list$year_eff[,1],digits=2),0.5),quantile(signif(out$BUGS$sims.list$year_eff[,1],digits=2),0.925),
                    #"\nyear_eff16 =", quantile(signif(out$BUGS$sims.list$year_eff[,2],digits=2),0.025),quantile(signif(out$BUGS$sims.list$year_eff[,2],digits=2),0.5),quantile(signif(out$BUGS$sims.list$year_eff[,2],digits=2),0.925),
                    "\nStarts =", quantile(starts, 0.025),quantile(starts, 0.5),quantile(starts, 0.975),
@@ -315,7 +181,7 @@ plot(0, 0, type = "n", col = "red", bty = "l",
      xlab = "Time", ylab = "Probability of being in bin 'x'")
 
 day_seq <- 1:dim(out$BUGS$mean$pp)[2]
-points(hares$Julian, jitter(hares$White/100), pch = 19, cex = 1, col = "gray60")
+points(hares$Julian, jitter(hares$White), pch = 19, cex = 1, col = "gray60")
 
 for(i in 1:3){
   lines(day_seq, out$BUGS$mean$pp[i,], col = i, type = "l")
@@ -330,8 +196,8 @@ hist(starts, add = T, freq = F, col = "black", border = "black");hist(ends, add 
 # abline(v=c(quantile(mids.5, 0.025), quantile(mids.5, 0.975)), col = "red", lty = 3)
 # abline(v=c(quantile(ends.5, 0.025), quantile(ends.5, 0.975)), col = "black", lty = 3)
 text(200, 0.3, paste("CAN all, 5K/500",
-                     #"\nyear_eff15 =", quantile(signif(out$BUGS$sims.list$year_eff[,1],digits=2),0.025),quantile(signif(out$BUGS$sims.list$year_eff[,1],digits=2),0.5),quantile(signif(out$BUGS$sims.list$year_eff[,1],digits=2),0.925),
-                     #"\nyear_eff16 =", quantile(signif(out$BUGS$sims.list$year_eff[,2],digits=2),0.025),quantile(signif(out$BUGS$sims.list$year_eff[,2],digits=2),0.5),quantile(signif(out$BUGS$sims.list$year_eff[,2],digits=2),0.925),
+                     "\nyear_eff15 =", quantile(signif(out$BUGS$sims.list$year_eff[,1],digits=2),0.025),quantile(signif(out$BUGS$sims.list$year_eff[,1],digits=2),0.5),quantile(signif(out$BUGS$sims.list$year_eff[,1],digits=2),0.925),
+                     "\nyear_eff16 =", quantile(signif(out$BUGS$sims.list$year_eff[,2],digits=2),0.025),quantile(signif(out$BUGS$sims.list$year_eff[,2],digits=2),0.5),quantile(signif(out$BUGS$sims.list$year_eff[,2],digits=2),0.925),
                      #"\nelev_eff1 =", quantile(signif(out$BUGS$sims.list$elev_eff[,1],digits=2),0.025),quantile(signif(out$BUGS$sims.list$elev_eff[,1],digits=2),0.5),quantile(signif(out$BUGS$sims.list$elev_eff[,1],digits=2),0.925),
                      #"\nelev_eff2 =", quantile(signif(out$BUGS$sims.list$elev_eff[,2],digits=2),0.025),quantile(signif(out$BUGS$sims.list$elev_eff[,2],digits=2),0.5),quantile(signif(out$BUGS$sims.list$elev_eff[,2],digits=2),0.925),
                      "\nStarts=", quantile(starts, 0.025),quantile(starts, 0.5),quantile(starts, 0.975),

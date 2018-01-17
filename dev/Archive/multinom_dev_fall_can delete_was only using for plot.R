@@ -115,16 +115,16 @@ print(out)
 out$BUGS$mean$on_snow_eff
 str(out)
 ################################################################################
-# Plots
+# Plots : COPIED TO SPRING CODE
 #  Find start dates
 starts <- apply(out$BUGS$sims.list$pp[,1,], 1, function(x){ 
-  min(which(x < 0.75)) })
+  min(which(x < 0.9)) })
 hist(starts, xlab = "Day");quantile(starts, c(0.025, 0.5, 0.975))
 #starts.5 <- apply(out$BUGS$sims.list$pp[,1,], 1, function(x){min(which(x < 0.5)) }); hist(starts.5, xlab = "Day");quantile(starts.5, c(0.025, 0.5, 0.975))
 
 #  Find end dates
 ends <- apply(out$BUGS$sims.list$pp[,3,], 1, function(x){ 
-  min(which(x > 0.75)) })
+  min(which(x > 0.9)) })
 hist(ends, xlab = "Day");quantile(ends, c(0.025, 0.5, 0.975))
 #ends.5 <- apply(out$BUGS$sims.list$pp[,3,], 1, function(x){min(which(x > 0.5)) }); hist(ends.5, xlab = "Day");quantile(ends.5, c(0.025, 0.5, 0.975))
 
@@ -139,30 +139,31 @@ plot(0, 0, type = "n", col = "red", bty = "l",
      xlab = "Time", ylab = "Probability of being in bin 'x'")
 
 day_seq <- 1:dim(out$BUGS$mean$pp)[2]
-points(hares$Julian, jitter(hares$White3/100), pch = 19, cex = 1, col = "gray60")
+points(hares$Julian, jitter(hares$White), pch = 19, cex = 1, col = "gray60")
 
 for(i in 1:3){
   lines(day_seq, out$BUGS$mean$pp[i,], col = i, type = "l")
 }
-abline(v=c(quantile(starts, 0.5)), col="black");abline(v=c(quantile(ends, 0.5)), col="green")#;abline(v=c(quantile(mids, 0.5)), col="red")
+abline(v=c(quantile(starts, 0.5)), col="black");abline(v=c(quantile(ends, 0.5)), col="green");abline(v=c(quantile(mids, 0.5)), col="red")
 abline(v=c(quantile(starts, 0.025), quantile(starts, 0.975)), col = "black", lty = 3)
-#abline(v=c(quantile(mids, 0.025), quantile(mids, 0.975)), col = "red", lty = 3)
+abline(v=c(quantile(mids, 0.025), quantile(mids, 0.975)), col = "red", lty = 3)
 abline(v=c(quantile(ends, 0.025), quantile(ends, 0.975)), col = "green", lty = 3)
 hist(starts, add = T, freq = F, col = "black", border = "black");hist(ends, add = T, freq = F, col = "green", border = "green");hist(mids, add = T, freq = F, col = "red", border = "red")
 # abline(v=c(quantile(starts.5, 0.5)), col="blue");abline(v=c(quantile(ends.5, 0.5)), col="blue")
 # abline(v=c(quantile(starts.5, 0.025), quantile(starts.5, 0.975)), col = "green", lty = 3)
 # abline(v=c(quantile(mids.5, 0.025), quantile(mids.5, 0.975)), col = "red", lty = 3)
 # abline(v=c(quantile(ends.5, 0.025), quantile(ends.5, 0.975)), col = "black", lty = 3)
-
-text(200, 0.3, paste("NH 2014 fall, 400K/200K not conv",
+text(200, 0.3, paste("CAN all, 5K/500",
+                     "\nyear_eff15 =", quantile(signif(out$BUGS$sims.list$year_eff[,1],digits=2),0.025),quantile(signif(out$BUGS$sims.list$year_eff[,1],digits=2),0.5),quantile(signif(out$BUGS$sims.list$year_eff[,1],digits=2),0.925),
+                     "\nyear_eff16 =", quantile(signif(out$BUGS$sims.list$year_eff[,2],digits=2),0.025),quantile(signif(out$BUGS$sims.list$year_eff[,2],digits=2),0.5),quantile(signif(out$BUGS$sims.list$year_eff[,2],digits=2),0.925),
                    #"\nelev_eff1 =", quantile(signif(out$BUGS$sims.list$elev_eff[,1],digits=2),0.025),quantile(signif(out$BUGS$sims.list$elev_eff[,1],digits=2),0.5),quantile(signif(out$BUGS$sims.list$elev_eff[,1],digits=2),0.925),
                    #"\nelev_eff2 =", quantile(signif(out$BUGS$sims.list$elev_eff[,2],digits=2),0.025),quantile(signif(out$BUGS$sims.list$elev_eff[,2],digits=2),0.5),quantile(signif(out$BUGS$sims.list$elev_eff[,2],digits=2),0.925),
-                   "\nStarts .75=", quantile(starts, 0.025),quantile(starts, 0.5),quantile(starts, 0.975),
+                   "\nStarts=", quantile(starts, 0.025),quantile(starts, 0.5),quantile(starts, 0.975),
                    "\nMids =", quantile(mids, 0.025),quantile(mids, 0.5),quantile(mids, 0.975),
-                   "\nEnds .75=", quantile(ends, 0.025),quantile(ends, 0.5),quantile(ends, 0.975), 
-     "\nStarts.5 =", quantile(starts.5, 0.025),quantile(starts.5, 0.5),quantile(starts.5, 0.975),
-     "\nEnds.5 =", quantile(ends.5, 0.025),quantile(ends.5, 0.5),quantile(ends.5, 0.975)), 
-                    pos = 4, cex=0.9)
+                   "\nEnds=", quantile(ends, 0.025),quantile(ends, 0.5),quantile(ends, 0.975)),
+                 #"\nStarts.5 =", quantile(starts.5, 0.025),quantile(starts.5, 0.5),quantile(starts.5, 0.975),
+                 #"\nEnds.5 =", quantile(ends.5, 0.025),quantile(ends.5, 0.5),quantile(ends.5, 0.975)), 
+                                  pos = 4, cex=0.9)
 
 ########################################################################################################################
 #  Plot with random effects

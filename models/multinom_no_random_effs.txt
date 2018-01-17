@@ -10,17 +10,19 @@ model{
   }
 
   for(i in 1:(nbins - 1)){
-    beta[i] ~ dnorm(0, 0.001)
+    beta[i] ~ dnorm(0, 0.001) # only 1 and 2 have their own beta and alpha
   }
 
   for(d in 1:ndays){
-    log(p_exp[1,d]) <- alpha[1] +
+    log(p_exp[1,d]) <- alpha[1] + # why is it not logit(p_exp...)?
       beta[1] * d
+
     log(p_exp[2,d]) <- alpha[2] +
       beta[2] * d
-    log(p_exp[3,d]) <- 0
 
-    p_sum[d] <- sum(p_exp[,d])
+    log(p_exp[3,d]) <- 0 #log link function for expected P of being in in 3 on day d
+
+    p_sum[d] <- sum(p_exp[,d]) # classic transformation is log(p/1-p)]
 
     pp[1,d] <- p_exp[1,d]/p_sum[d]
     pp[2,d] <- p_exp[2,d]/p_sum[d]
@@ -28,6 +30,6 @@ model{
   }
 
   for(i in 1:nobs){
-    y[i] ~ dcat(p_exp[,day[i]]) 
+    y[i] ~ dcat(p_exp[,day[i]]) #likelihood
   }
 }

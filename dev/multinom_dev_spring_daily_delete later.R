@@ -30,14 +30,14 @@ hares <- select(hares_cl, Site, White3, White, Julian, Cluster, Year, fCluster, 
 # If want to run it with daily covariates: 
 # Create new camera x year identifier
 hares <- mutate(hares,ClusterYr = paste(fCluster, Year, sep = '_')) %>%
-arrange(ClusterYr,Julian)
+  arrange(ClusterYr,Julian)
 (ClusterYrcount<-length(unique(hares$ClusterYr)))
 
 # 2. Load camera data (for selected hares data above)
 load("/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/data/cameras.RData")
 camera_names <- unique(hares$fCluster)
 cameras <- filter(cameras, fCluster %in% camera_names)
-(fClustercount <-length(unique(cameras$fCluster)))
+#(fClustercount <-length(unique(cameras$fCluster)))
 
 # summary <- hares %>%
 #   group_by(Cluster,White3) %>%
@@ -53,11 +53,11 @@ time_scale <- "Julian"
 load.module("glm")
 
 #  Subset to days - to reduce redundancy and ease inits and data create
-# unlist makes anything into a vector: here subsetting for one column such as [all rows,column 'Julian']
+# unlist makes anything into a vector here subsetting for one column: [all rows,column 'Julian']
 days <- as.integer(unlist(hares[,time_scale]))
 (first_day <- min(days))
 (last_day <- max(days))
-(my_year <-  as.integer(unique(hares$Year))) # not using currenty for anything
+#(my_year <-  as.integer(unique(hares$Year))) # not using currenty for anything
 
 #  Create categorical response
 hares$response <- cut(hares$White3, 3, labels = 1:3) # 1 is brown
@@ -65,18 +65,18 @@ hares$response <- cut(hares$White3, 3, labels = 1:3) # 1 is brown
 #### or flip white and brown here if want:
 # hares <- mutate(hares, White3_flipped= abs(White3-4))
 # hares$response <- cut(hares$White3_flipped, 3, labels = 1:3) # 1 is brown
-ggplot(hares, aes(Julian, response, colour=fCluster)) + geom_jitter(width = .1, height = .1) + theme(legend.position = "none") 
+# ggplot(hares, aes(Julian, response, colour=fCluster)) + geom_jitter(width = .1, height = .1)
 
 #  Inits
 inits <- function(){
   list(
     alpha = rnorm(3)
-  )}
-
-################################################################################################################################ 
+  )
+}
+ 
 # #  Prepare data - all covariates on camera basis so run following to make camera cluster basis:
-# Spatial data (Elev, Lat, Lon)
 # GeoCL <- cameras %>%
+#   #filter(Site =="NH")  %>% # filter for each site if not working with all at once
 #   group_by(fCluster) %>% # hide if interested in running models on camera basis
 #   summarize(ElevCl= mean(Elevation),
 #             LatCl=mean(Lat),
@@ -86,8 +86,7 @@ inits <- function(){
 #         LonSC=scale(LonCl)) %>%  #centers and scales (both default true)
 #   arrange(fCluster)
 
-################################################################################################################################
-# #  Seasonal snow data = livneh 
+# #  Snow_livneh data
 # load('/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/data/past_livneh_snowseas.RData')
 # livneh <- past_livneh %>%
 #   filter(fCluster %in% camera_names) %>%
@@ -97,8 +96,7 @@ inits <- function(){
 #   na.omit() # check if any NAs!
 # length(unique(livneh$fCluster))
  
-################################################################################################################################
-# #  Temperature data (seasonal 30-yr normals 1980-2009)
+# #  Temperature (seasonal 30-yr normal 1980-2009)
 # load('/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/data/past_daymet_seas.RData')
 # past_daymet <- past_daymet_seas %>%
 #   filter(fCluster %in% camera_names)
@@ -116,8 +114,7 @@ inits <- function(){
 #   arrange(fCluster) # had Cluster before but that is wrong I think
 # length(unique(past_daymet$fCluster))
 
-################################################################################################################################
-## Daily daymet temps during 2010-2016
+# Daily temps
 load("/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/data/daymet_2010_2016.RData")
 cams <- select(cameras, Camera, fCluster, Cluster)
 
@@ -148,57 +145,26 @@ spread_daymet <- daymet %>%
 length(unique(daymet$ClusterYr))
 length(unique(hares$ClusterYr))
 
-###########################################################################################################################
-# Yearly daymet temps 2010-2016
-load('/Users/marketzimova/Documents/WORK/DISSERTATION/3 Camera Traps Study/analysis SNOW/Daymet/metrics calculated w daily data/daymet_monthly_seasonally_2010-2016.RData')
-cams <- select(cameras, Camera, fCluster, Cluster)
-
-# Choose season and calculate cluster yearly averages
-spring <- daymet_data %>%
-  filter(season==1) %>% # spring is 1
-  select(Camera, year, season_tavg, season_tmin,season_tmax) %>%
-  left_join(cams) %>% 
-  na.omit() %>%
-  group_by(fCluster,year) %>%
-  summarise(season_tavg = mean(season_tavg),
-            season_tmin = mean(season_tmin),
-            season_tmax = mean(season_tmax)) %>%
-  mutate(season_tavg =scale(season_tavg),
-         season_tmin =scale(season_tmin),
-         season_tmax =scale(season_tmax))
-
-# Attach seasonal temps to selected days
-yearly_daymet <- daymet_data %>%
-  mutate(Julian=yday(Date)) %>%
-  filter(year %in% my_year, 
-         Julian <= last_day) %>%
-  left_join(cams) %>% 
-  select(fCluster, year, Julian, Date) %>%
-  left_join(spring) %>% 
-  na.omit() %>% 
-  arrange(fCluster,Date)
-
 ####################################################################################
 # Gather data 
 dat <- list(
   nobs = nrow(hares),
   day = days, 
-  nyr= length(my_year),
-  #cam = as.numeric(as.factor(hares$fCluster)), #if running with yearly (eg ytemp) or cluster varying covariates (eg elev)
-  cam = as.numeric(as.factor(hares$ClusterYr)), # if running with daily varying covariates (eg dtemp)
+  #cam = as.numeric(as.factor(hares$fCluster)), 
+  cam = as.numeric(as.factor(hares$ClusterYr)), # if running with daily covariates
   y = hares$response,
   nbins = 3,
   ndays = last_day,
-  #ncam = length(unique(hares$fCluster)), # if running with yearly (eg ytemp) or cluster varying covariates (eg elev)
-  ncam = length(unique(hares$ClusterYr)), # if running with daily varying covariates (eg dtemp)
-  dtemp = spread_daymet # daily and by camera varying 
-  #elev = as.numeric(GeoCL$ElevSC) # by camera varying
-  #ytemp = as.numeric(yearly_daymet$season_tavg) # yearly and by camera varying
+  #first_day = first_day, #not using right now
+  #ncam = length(unique(hares$fCluster)), 
+  ncam = length(unique(hares$ClusterYr)), # if running with daily covariates
+  dtemp = spread_daymet
+  #elev = as.numeric(GeoCL$ElevSC)
 )
 
 # Parameters to monitor
 parms <- c("beta", "alpha","pp","sigma_cam","tau_cam",
-           "ytemp","dtemp_eff","elev_eff"#,
+           "dtemp_eff","elev_eff"#,"tavg30_eff", "lat_eff"#,
            #"sigma", "rho", p_rand","cat_mu" 
 )
 
@@ -209,8 +175,7 @@ out <- jags.parallel( #or just jags
   data = dat, 
   inits = NULL,
   parameters.to.save = parms,
-  model.file = "models/multinom_covs.txt", #works for anything except for ytemp
-  #model.file = "models/multinom_covs_yr.txt", # for yearly varying covs (=ytemp)  
+  model.file = "models/multinom_covs.txt", #multinom_covs or multinom or multinom_covs_dtemp
   n.chains = 3,
   n.iter = 100,
   n.burnin = 50,
